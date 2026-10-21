@@ -1,3 +1,1 @@
-# Google AdSense ads.txt standarti
-# O'zingizning AdSense pub-xxxxxxxxxxxxxxxx ID raqamingizni qo'ying:
-google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+google.com, pub-7130879452620228, DIRECT, f08c47fec0942fa0
