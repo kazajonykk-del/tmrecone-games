@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>3D Neon Highway Racer | CyberGames</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ff007f;
+      --neon-purple: #9d00ff;
+      --neon-yellow: #ffe600;
+      --dark-bg: #070913;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: var(--dark-bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #fff; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    
+    /* HUD */
+    .hud {
+      position: absolute; top: 15px; left: 0; width: 100%; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px; pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(10, 15, 30, 0.75);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+      padding: 8px 16px; border-radius: 20px;
+      font-weight: bold; font-size: 14px;
+      backdrop-filter: blur(5px);
+      display: flex; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    .hud-score { color: var(--neon-yellow); font-size: 18px; text-shadow: 0 0 8px var(--neon-yellow); }
+    .hud-coins { color: #ffd700; }
+    .hud-gems { color: var(--neon-cyan); }
+    .btn-hud {
+      background: rgba(255, 0, 127, 0.2); border: 1px solid var(--neon-pink);
+      color: #fff; border-radius: 50%; width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; pointer-events: auto;
+    }
+    .btn-hud:hover { background: var(--neon-pink); box-shadow: 0 0 15px var(--neon-pink); }
+    
+    /* Mobile Controls */
+    .mobile-controls {
+      position: absolute; bottom: 25px; left: 0; width: 100%;
+      display: flex; justify-content: space-between; padding: 0 25px;
+      z-index: 10; pointer-events: none;
+    }
+    .touch-btn {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: rgba(0, 243, 255, 0.25); border: 2px solid var(--neon-cyan);
+      color: #fff; font-size: 24px; display: flex; align-items: center; justify-content: center;
+      pointer-events: auto; touch-action: manipulation;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+      transition: transform 0.1s;
+    }
+    .touch-btn:active { transform: scale(0.9); background: var(--neon-cyan); color: #000; }
+    .touch-btn.boost { border-color: var(--neon-pink); background: rgba(255, 0, 127, 0.25); }
+    .touch-btn.boost:active { background: var(--neon-pink); }
+
+    /* Modals & Overlays */
+    .game-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 7, 15, 0.88); z-index: 100;
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      backdrop-filter: blur(8px); padding: 15px;
+    }
+    .modal-content-cyber {
+      background: linear-gradient(145deg, #0d1124, #080a14);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+      border-radius: 16px; padding: 25px; max-width: 440px; width: 100%;
+      text-align: center;
+    }
+    .modal-title-cyber {
+      font-size: 26px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 15px;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    /* AdSense Box (Mandatory 300x250) */
+    .ad-container-300x250 {
+      width: 300px; height: 250px; margin: 15px auto;
+      background: #02040a; border: 1px dashed #445;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .ad-badge {
+      position: absolute; top: 4px; right: 6px; font-size: 9px;
+      color: #889; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .ad-placeholder-text {
+      color: #556; font-size: 12px; text-align: center; line-height: 1.4;
+    }
+
+    /* Spacing Rule: At least 25px between Ad and Buttons */
+    .modal-actions-area {
+      margin-top: 30px; /* >25px AdSense safe distance requirement */
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .btn-cyber {
+      padding: 12px 20px; font-weight: bold; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+      border: none; transition: all 0.2s; font-size: 15px; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-cyber-primary {
+      background: linear-gradient(90deg, #00f3ff, #0088ff); color: #000;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+    }
+    .btn-cyber-primary:hover { transform: translateY(-2px); box-shadow: 0 0 20px var(--neon-cyan); }
+    .btn-cyber-reward {
+      background: linear-gradient(90deg, #ffe600, #ff8c00); color: #000;
+      box-shadow: 0 0 15px rgba(255, 230, 0, 0.5);
+    }
+    .btn-cyber-secondary {
+      background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid #445;
+    }
+    .btn-cyber-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+
+    /* Shop Item Grid */
+    .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; max-height: 220px; overflow-y: auto; }
+    .shop-card {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid #334;
+      border-radius: 10px; padding: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .shop-card.active { border-color: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+    .shop-card .preview-box { height: 50px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-box">
+      <a href="../../index.html" class="text-white text-decoration-none me-2"><i class="fa-solid fa-house"></i></a>
+      <span class="hud-score"><i class="fa-solid fa-gauge-high"></i> <span id="ui-score">0</span>m</span>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="hud-box">
+        <span class="hud-coins"><i class="fa-solid fa-coins"></i> <span id="ui-coins">0</span></span>
+        <span class="hud-gems ms-2"><i class="fa-solid fa-gem"></i> <span id="ui-gems">0</span></span>
+      </div>
+      <button class="btn-hud" id="btn-shop" title="Do'kon"><i class="fa-solid fa-cart-shopping"></i></button>
+      <button class="btn-hud" id="btn-pause" title="Pauza"><i class="fa-solid fa-pause"></i></button>
+    </div>
+  </div>
+
+  <!-- Mobile Controls -->
+  <div class="mobile-controls">
+    <div class="d-flex gap-3">
+      <button class="touch-btn" id="ctrl-left"><i class="fa-solid fa-arrow-left"></i></button>
+      <button class="touch-btn" id="ctrl-right"><i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+    <div>
+      <button class="touch-btn boost" id="ctrl-boost"><i class="fa-solid fa-bolt"></i></button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="game-modal" id="modal-pause">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">O'YIN TO'XTATILDI</h2>
+      <p class="text-secondary small">Neon Highway Racer</p>
+      
+      <!-- AdSense 300x250 -->
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-rectangle-ad fa-2x mb-2 text-muted"></i><br>
+          Google AdSense 300x250<br>Responsive Display Banner
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-primary" id="btn-resume"><i class="fa-solid fa-play"></i> Davom ettirish</button>
+        <button class="btn-cyber btn-cyber-secondary" id="btn-pause-restart"><i class="fa-solid fa-rotate-right"></i> Qayta boshlash</button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary"><i class="fa-solid fa-home"></i> Bosh sahifa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="game-modal" id="modal-gameover">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber text-danger" style="-webkit-text-fill-color: #ff0055;">HALOKAT!</h2>
+      <div class="mb-2">
+        <span class="fs-5 text-light">Masofa: <strong id="over-score" class="text-warning">0</strong> m</span>
+      </div>
+      <div class="mb-3">
+        <span class="text-info me-3"><i class="fa-solid fa-coins text-warning"></i> +<span id="over-coins">0</span></span>
+        <span class="text-info"><i class="fa-solid fa-gem text-cyan"></i> +<span id="over-gems">0</span></span>
+      </div>
+
+      <!-- AdSense 300x250 Banner -->
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-rectangle-ad fa-2x mb-2 text-warning"></i><br>
+          Google AdSense 300x250<br>O'yindan so'ng reklama maydoni
+        </div>
+      </div>
+
+      <!-- AdSense safe spacing (>25px) -->
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-reward" id="btn-reward-double">
+          <i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)
+        </button>
+        <button class="btn-cyber btn-cyber-primary" id="btn-gameover-restart">
+          <i class="fa-solid fa-rotate-right"></i> Qayta O'ynash
+        </button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary">
+          <i class="fa-solid fa-house"></i> Bosh Sahifa
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="game-modal" id="modal-shop">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">KIBER DO'KON</h2>
+      <p class="text-secondary small">Mashinangiz uchun neon terilar tanlang</p>
+      
+      <div class="shop-grid" id="shop-items-container">
+        <!-- JS orqali to'ldiriladi -->
+      </div>
+
+      <div class="mt-3">
+        <button class="btn-cyber btn-cyber-primary w-100" id="btn-shop-close"><i class="fa-solid fa-check"></i> Tayyor</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Reward Modal -->
+  <div class="game-modal" id="modal-daily">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">KUNLIK MUKOFOT</h2>
+      <p class="text-secondary small">Har kuni kiring va bepul resurslar oling!</p>
+      <div class="p-3 my-3 rounded" style="background: rgba(255,255,255,0.05); border: 1px solid var(--neon-cyan);">
+        <h4 class="text-warning mb-2"><i class="fa-solid fa-coins"></i> +150 Tanga</h4>
+        <h5 class="text-info"><i class="fa-solid fa-gem"></i> +5 Olmos</h5>
+      </div>
+      <button class="btn-cyber btn-cyber-reward w-100" id="btn-claim-daily"><i class="fa-solid fa-gift"></i> Qabul Qilish</button>
+    </div>
+  </div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    /* ===================================================
+       1. GLOBAL STORAGE & SOUND ENGINE (Web Audio API)
+       =================================================== */
+    const Storage = {
+      getCoins: () => parseInt(localStorage.getItem('cg_coins')) || 250,
+      setCoins: (n) => { localStorage.setItem('cg_coins', n); Storage.updateUI(); },
+      addCoins: (n) => Storage.setCoins(Storage.getCoins() + n),
+      getGems: () => parseInt(localStorage.getItem('cg_gems')) || 15,
+      setGems: (n) => { localStorage.setItem('cg_gems', n); Storage.updateUI(); },
+      addGems: (n) => Storage.setGems(Storage.getGems() + n),
+      getSkin: () => localStorage.getItem('cg_racer_skin') || 'cyan',
+      setSkin: (s) => localStorage.setItem('cg_racer_skin', s),
+      getUnlockedSkins: () => JSON.parse(localStorage.getItem('cg_racer_skins') || '["cyan"]'),
+      unlockSkin: (s) => {
+        let skins = Storage.getUnlockedSkins();
+        if (!skins.includes(s)) skins.push(s);
+        localStorage.setItem('cg_racer_skins', JSON.stringify(skins));
+      },
+      updateUI: () => {
+        const c = Storage.getCoins();
+        const g = Storage.getGems();
+        const elC = document.getElementById('ui-coins');
+        const elG = document.getElementById('ui-gems');
+        if (elC) elC.textContent = c;
+        if (elG) elG.textContent = g;
+      }
+    };
+
+    const Sound = {
+      ctx: null,
+      init: () => {
+        if (!Sound.ctx) Sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (Sound.ctx.state === 'suspended') Sound.ctx.resume();
+      },
+      play: (freq, type, dur, endFreq = null) => {
+        try {
+          Sound.init();
+          const osc = Sound.ctx.createOscillator();
+          const gain = Sound.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, Sound.ctx.currentTime);
+          if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, Sound.ctx.currentTime + dur);
+          gain.gain.setValueAtTime(0.12, Sound.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, Sound.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(Sound.ctx.destination);
+          osc.start();
+          osc.stop(Sound.ctx.currentTime + dur);
+        } catch(e) {}
+      },
+      coin: () => Sound.play(987, 'sine', 0.15, 1318),
+      gem: () => Sound.play(1318, 'sine', 0.25, 2093),
+      crash: () => Sound.play(120, 'sawtooth', 0.4, 40),
+      click: () => Sound.play(600, 'triangle', 0.05),
+      engine: () => Sound.play(180, 'sawtooth', 0.1, 240)
+    };
+
+    /* ===================================================
+       2. THREE.JS GAME ENGINE - NEON HIGHWAY RACER
+       =================================================== */
+    let scene, camera, renderer;
+    let playerCar, playerSkinColor = 0x00f3ff;
+    let lanes = [-3.5, 0, 3.5];
+    let currentLane = 1;
+    let targetX = 0;
+    let speed = 40;
+    let baseSpeed = 40;
+    let maxSpeed = 80;
+    let distance = 0;
+    let isGameOver = false;
+    let isPaused = false;
+    let sessionCoins = 0;
+    let sessionGems = 0;
+
+    const obstacles = [];
+    const coins = [];
+    const gems = [];
+    const scenery = [];
+    const roadSegments = [];
+
+    const SKINS = [
+      { id: 'cyan', name: 'Cyber Cyan', color: 0x00f3ff, price: 0, type: 'coins' },
+      { id: 'pink', name: 'Neon Pink', color: 0xff007f, price: 150, type: 'coins' },
+      { id: 'gold', name: 'Golden Sun', color: 0xffd700, price: 300, type: 'coins' },
+      { id: 'matrix', name: 'Matrix Green', color: 0x00ff66, price: 5, type: 'gems' }
+    ];
+
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x070913, 0.018);
+
+      camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 300);
+      camera.position.set(0, 4.5, 9);
+      camera.lookAt(0, 1.2, -10);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // Chiroqlar
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00f3ff, 1.2);
+      dirLight.position.set(5, 15, 10);
+      scene.add(dirLight);
+
+      // Yo'l va atrof
+      buildRoad();
+      buildScenery();
+      createPlayerCar();
+
+      window.addEventListener('resize', onWindowResize);
+      setupControls();
+      setupShopUI();
+      Storage.updateUI();
+
+      animate();
+    }
+
+    function createCarMesh(colorHex) {
+      const carGroup = new THREE.Group();
+      // Korpus
+      const bodyGeo = new THREE.BoxGeometry(1.6, 0.65, 3.2);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: colorHex, metalness: 0.8, roughness: 0.2,
+        emissive: colorHex, emissiveIntensity: 0.2
+      });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 0.5;
+      carGroup.add(body);
+
+      // Kabina
+      const cabinGeo = new THREE.BoxGeometry(1.2, 0.5, 1.6);
+      const cabinMat = new THREE.MeshStandardMaterial({ color: 0x111625, roughness: 0.1 });
+      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+      cabin.position.set(0, 0.9, -0.2);
+      carGroup.add(cabin);
+
+      // Neon chiroqlar (orqa qizil, old neon)
+      const headlightGeo = new THREE.BoxGeometry(0.35, 0.1, 0.1);
+      const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const hlLeft = new THREE.Mesh(headlightGeo, headlightMat);
+      hlLeft.position.set(-0.55, 0.5, -1.61);
+      const hlRight = hlLeft.clone();
+      hlRight.position.x = 0.55;
+      carGroup.add(hlLeft, hlRight);
+
+      const tailGeo = new THREE.BoxGeometry(0.35, 0.1, 0.1);
+      const tailMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
+      const tlLeft = new THREE.Mesh(tailGeo, tailMat);
+      tlLeft.position.set(-0.55, 0.5, 1.61);
+      const tlRight = tlLeft.clone();
+      tlRight.position.x = 0.55;
+      carGroup.add(tlLeft, tlRight);
+
+      // G'ildiraklar
+      const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 16);
+      wheelGeo.rotateZ(Math.PI / 2);
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+      const wPositions = [
+        [-0.85, 0.35, -1], [0.85, 0.35, -1],
+        [-0.85, 0.35, 1], [0.85, 0.35, 1]
+      ];
+      wPositions.forEach(p => {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.position.set(...p);
+        carGroup.add(wheel);
+      });
+
+      return carGroup;
+    }
+
+    function createPlayerCar() {
+      const activeSkinId = Storage.getSkin();
+      const skinObj = SKINS.find(s => s.id === activeSkinId) || SKINS[0];
+      playerSkinColor = skinObj.color;
+      if (playerCar) scene.remove(playerCar);
+      playerCar = createCarMesh(playerSkinColor);
+      playerCar.position.set(0, 0, 0);
+      scene.add(playerCar);
+    }
+
+    function buildRoad() {
+      const roadGeo = new THREE.PlaneGeometry(12, 100);
+      const roadMat = new THREE.MeshStandardMaterial({ color: 0x050813, roughness: 0.9 });
+      
+      for (let i = 0; i < 3; i++) {
+        const seg = new THREE.Mesh(roadGeo, roadMat);
+        seg.rotation.x = -Math.PI / 2;
+        seg.position.z = -i * 100;
+        scene.add(seg);
+        roadSegments.push(seg);
+      }
+
+      // Yo'l cheti neon bordyurlari
+      const railGeo = new THREE.BoxGeometry(0.2, 0.4, 300);
+      const railMatL = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const railMatR = new THREE.MeshBasicMaterial({ color: 0xff007f });
+      const railL = new THREE.Mesh(railGeo, railMatL);
+      railL.position.set(-6, 0.2, -100);
+      const railR = new THREE.Mesh(railGeo, railMatR);
+      railR.position.set(6, 0.2, -100);
+      scene.add(railL, railR);
+    }
+
+    function buildScenery() {
+      // Kiberpank binolar
+      const buildingGeo = new THREE.BoxGeometry(10, 40, 10);
+      for (let i = 0; i < 30; i++) {
+        const isLeft = Math.random() > 0.5;
+        const bMat = new THREE.MeshStandardMaterial({
+          color: 0x080b18, roughness: 0.4,
+          wireframe: Math.random() > 0.7
+        });
+        const building = new THREE.Mesh(buildingGeo, bMat);
+        const x = isLeft ? -15 - Math.random() * 15 : 15 + Math.random() * 15;
+        const z = -Math.random() * 250;
+        building.position.set(x, 15, z);
+        scene.add(building);
+        scenery.push(building);
+      }
+    }
+
+    /* Spawn to'siqlar, tangalar va olmoslar */
+    let lastSpawnZ = -30;
+    function spawnWave() {
+      const z = lastSpawnZ - 30;
+      lastSpawnZ = z;
+
+      // To'siq mashina (Traffic)
+      const obsLane = Math.floor(Math.random() * 3);
+      const obsColors = [0xff0055, 0x9d00ff, 0xff8c00];
+      const obsCar = createCarMesh(obsColors[Math.floor(Math.random() * obsColors.length)]);
+      obsCar.position.set(lanes[obsLane], 0, z);
+      scene.add(obsCar);
+      obstacles.push(obsCar);
+
+      // Tangalar boshqa yo'lakda
+      const coinLane = (obsLane + 1 + Math.floor(Math.random() * 2)) % 3;
+      const coinGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16);
+      coinGeo.rotateX(Math.PI / 2);
+      const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.1 });
+      const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+      coinMesh.position.set(lanes[coinLane], 0.7, z);
+      scene.add(coinMesh);
+      coins.push(coinMesh);
+
+      // Olmoslar (kamroq paydo bo'ladi)
+      if (Math.random() < 0.25) {
+        const gemGeo = new THREE.OctahedronGeometry(0.5);
+        const gemMat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, roughness: 0.1, emissive: 0x00f3ff, emissiveIntensity: 0.5 });
+        const gemMesh = new THREE.Mesh(gemGeo, gemMat);
+        gemMesh.position.set(lanes[obsLane === 0 ? 2 : 0], 0.8, z - 8);
+        scene.add(gemMesh);
+        gems.push(gemMesh);
+      }
+    }
+
+    function setupControls() {
+      const moveLeft = () => {
+        if (currentLane > 0) { currentLane--; targetX = lanes[currentLane]; Sound.click(); }
+      };
+      const moveRight = () => {
+        if (currentLane < 2) { currentLane++; targetX = lanes[currentLane]; Sound.click(); }
+      };
+
+      window.addEventListener('keydown', (e) => {
+        if (isGameOver) return;
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') speed = maxSpeed;
+        if (e.key === 'p' || e.key === 'P') togglePause();
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') speed = baseSpeed;
+      });
+
+      // Mobile Touch
+      document.getElementById('ctrl-left').addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft(); });
+      document.getElementById('ctrl-right').addEventListener('touchstart', (e) => { e.preventDefault(); moveRight(); });
+      const btnBoost = document.getElementById('ctrl-boost');
+      btnBoost.addEventListener('touchstart', (e) => { e.preventDefault(); speed = maxSpeed; Sound.engine(); });
+      btnBoost.addEventListener('touchend', (e) => { e.preventDefault(); speed = baseSpeed; });
+      btnBoost.addEventListener('mousedown', () => speed = maxSpeed);
+      btnBoost.addEventListener('mouseup', () => speed = baseSpeed);
+
+      // Modal tugmalar
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', togglePause);
+      document.getElementById('btn-pause-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-gameover-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-shop').addEventListener('click', openShop);
+      document.getElementById('btn-shop-close').addEventListener('click', closeShop);
+
+      // Rewarded 2X Ads button
+      document.getElementById('btn-reward-double').addEventListener('click', () => {
+        Sound.click();
+        const btn = document.getElementById('btn-reward-double');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Reklama yuklanmoqda... (3s)';
+        
+        setTimeout(() => {
+          const bonus = sessionCoins;
+          Storage.addCoins(bonus);
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> +${bonus} Tanga qo'shildi!`;
+          Sound.gem();
+        }, 3000);
+      });
+    }
+
+    function togglePause() {
+      if (isGameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('modal-pause').style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      Sound.crash();
+
+      Storage.addCoins(sessionCoins);
+      Storage.addGems(sessionGems);
+
+      document.getElementById('over-score').textContent = Math.floor(distance);
+      document.getElementById('over-coins').textContent = sessionCoins;
+      document.getElementById('over-gems').textContent = sessionGems;
+      document.getElementById('modal-gameover').style.display = 'flex';
+    }
+
+    function restartGame() {
+      isGameOver = false;
+      isPaused = false;
+      distance = 0;
+      speed = baseSpeed;
+      sessionCoins = 0;
+      sessionGems = 0;
+      currentLane = 1;
+      targetX = lanes[1];
+      lastSpawnZ = -30;
+
+      // Tozalash
+      obstacles.forEach(o => scene.remove(o));
+      coins.forEach(c => scene.remove(c));
+      gems.forEach(g => scene.remove(g));
+      obstacles.length = 0;
+      coins.length = 0;
+      gems.length = 0;
+
+      if (playerCar) playerCar.position.set(0, 0, 0);
+
+      document.getElementById('modal-gameover').style.display = 'none';
+      document.getElementById('modal-pause').style.display = 'none';
+      const rBtn = document.getElementById('btn-reward-double');
+      rBtn.disabled = false;
+      rBtn.innerHTML = '<i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)';
+    }
+
+    function openShop() {
+      isPaused = true;
+      document.getElementById('modal-shop').style.display = 'flex';
+    }
+    function closeShop() {
+      document.getElementById('modal-shop').style.display = 'none';
+      isPaused = false;
+      createPlayerCar();
+    }
+
+    function setupShopUI() {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      const unlocked = Storage.getUnlockedSkins();
+      const current = Storage.getSkin();
+
+      SKINS.forEach(skin => {
+        const isBought = unlocked.includes(skin.id);
+        const isActive = current === skin.id;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="preview-box" style="background: #${skin.color.toString(16).padStart(6, '0')};">
+            <i class="fa-solid fa-car-side text-dark fs-4"></i>
+          </div>
+          <div class="fw-bold small">${skin.name}</div>
+          <div class="small text-muted mb-2">
+            ${isBought ? (isActive ? 'Faol' : 'Sotib olingan') : (skin.type === 'coins' ? `${skin.price} <i class="fa-solid fa-coins text-warning"></i>` : `${skin.price} <i class="fa-solid fa-gem text-cyan"></i>`)}
+          </div>
+          <button class="btn btn-sm w-100 ${isActive ? 'btn-outline-info' : 'btn-primary'}" ${isActive ? 'disabled' : ''}>
+            ${isActive ? 'Tanlangan' : (isBought ? 'Tanlash' : 'Olish')}
+          </button>
+        `;
+
+        card.querySelector('button').addEventListener('click', () => {
+          if (isBought) {
+            Storage.setSkin(skin.id);
+            setupShopUI();
+          } else {
+            if (skin.type === 'coins' && Storage.getCoins() >= skin.price) {
+              Storage.addCoins(-skin.price);
+              Storage.unlockSkin(skin.id);
+              Storage.setSkin(skin.id);
+              Sound.gem();
+              setupShopUI();
+            } else if (skin.type === 'gems' && Storage.getGems() >= skin.price) {
+              Storage.addGems(-skin.price);
+              Storage.unlockSkin(skin.id);
+              Storage.setSkin(skin.id);
+              Sound.gem();
+              setupShopUI();
+            } else {
+              alert('Mablag\' yetarli emas!');
+            }
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* Asosiy o'yin animatsiya sikli */
+    let clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isPaused || isGameOver) return;
+
+      const delta = clock.getDelta();
+      const moveDistance = speed * delta;
+      distance += moveDistance;
+      document.getElementById('ui-score').textContent = Math.floor(distance);
+
+      // Mashina silliq harakatlanishi
+      playerCar.position.x += (targetX - playerCar.position.x) * 0.15;
+      playerCar.rotation.z = -(targetX - playerCar.position.x) * 0.1;
+
+      // Yo'l harakati
+      roadSegments.forEach(seg => {
+        seg.position.z += moveDistance;
+        if (seg.position.z > 50) seg.position.z -= 300;
+      });
+
+      // Atrofdagi binolar harakati
+      scenery.forEach(b => {
+        b.position.z += moveDistance;
+        if (b.position.z > 30) b.position.z -= 250;
+      });
+
+      // To'siqlar
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.position.z += moveDistance * 0.7; // Oldinga qarab sekinroq harakatlanadi
+
+        // Collision check
+        const dist = playerCar.position.distanceTo(obs.position);
+        if (dist < 2.0) {
+          triggerGameOver();
+          return;
+        }
+
+        if (obs.position.z > 15) {
+          scene.remove(obs);
+          obstacles.splice(i, 1);
+        }
+      }
+
+      // Tangalar
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        c.position.z += moveDistance;
+        c.rotation.z += 0.05;
+
+        if (playerCar.position.distanceTo(c.position) < 1.6) {
+          Sound.coin();
+          sessionCoins += 5;
+          document.getElementById('ui-coins').textContent = Storage.getCoins() + sessionCoins;
+          scene.remove(c);
+          coins.splice(i, 1);
+        } else if (c.position.z > 15) {
+          scene.remove(c);
+          coins.splice(i, 1);
+        }
+      }
+
+      // Olmoslar
+      for (let i = gems.length - 1; i >= 0; i--) {
+        const g = gems[i];
+        g.position.z += moveDistance;
+        g.rotation.y += 0.04;
+
+        if (playerCar.position.distanceTo(g.position) < 1.6) {
+          Sound.gem();
+          sessionGems += 1;
+          document.getElementById('ui-gems').textContent = Storage.getGems() + sessionGems;
+          scene.remove(g);
+          gems.splice(i, 1);
+        } else if (g.position.z > 15) {
+          scene.remove(g);
+          gems.splice(i, 1);
+        }
+      }
+
+      // To'lqin paydo qilish
+      if (lastSpawnZ > -180) {
+        spawnWave();
+      }
+      lastSpawnZ += moveDistance;
+
+      renderer.render(scene, camera);
+    }
+
+    window.onload = initThree;
+  </script>
+</body>
+</html>

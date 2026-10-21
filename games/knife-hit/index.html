@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>3D Knife Hit Master | CyberGames</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --neon-red: #ff0055;
+      --neon-cyan: #00f3ff;
+      --dark-bg: #090b14;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: var(--dark-bg); font-family: 'Segoe UI', sans-serif; color: #fff; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; touch-action: manipulation; }
+
+    .hud {
+      position: absolute; top: 15px; left: 0; width: 100%; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px; pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(10, 16, 28, 0.85);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+      padding: 8px 16px; border-radius: 20px;
+      font-weight: bold; font-size: 14px;
+      backdrop-filter: blur(5px);
+      display: flex; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    .btn-hud {
+      background: rgba(0, 243, 255, 0.2); border: 1px solid var(--neon-cyan);
+      color: #fff; border-radius: 50%; width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: 0.2s; pointer-events: auto;
+    }
+    .btn-hud:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
+
+    .knife-stack {
+      position: absolute; bottom: 35px; left: 25px;
+      display: flex; flex-direction: column-reverse; gap: 6px; z-index: 10; pointer-events: none;
+    }
+    .knife-icon { color: var(--neon-cyan); font-size: 18px; transition: opacity 0.2s; }
+    .knife-icon.used { opacity: 0.2; color: #555; }
+
+    .tap-guide {
+      position: absolute; bottom: 35px; width: 100%; text-align: center;
+      font-size: 14px; color: #889; z-index: 10; pointer-events: none;
+    }
+
+    .game-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(4, 7, 15, 0.9); z-index: 100;
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      backdrop-filter: blur(8px); padding: 15px;
+    }
+    .modal-content-cyber {
+      background: linear-gradient(145deg, #180d16, #060914);
+      border: 2px solid var(--neon-red);
+      box-shadow: 0 0 25px rgba(255, 0, 85, 0.4);
+      border-radius: 16px; padding: 25px; max-width: 440px; width: 100%;
+      text-align: center;
+    }
+    .modal-title-cyber {
+      font-size: 26px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 15px;
+      background: linear-gradient(90deg, var(--neon-red), var(--neon-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .ad-container-300x250 {
+      width: 300px; height: 250px; margin: 15px auto;
+      background: #02040a; border: 1px dashed #445;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .ad-badge {
+      position: absolute; top: 4px; right: 6px; font-size: 9px;
+      color: #889; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .ad-placeholder-text { color: #556; font-size: 12px; text-align: center; }
+
+    .modal-actions-area {
+      margin-top: 30px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .btn-cyber {
+      padding: 12px 20px; font-weight: bold; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+      border: none; transition: 0.2s; font-size: 15px; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-cyber-primary {
+      background: linear-gradient(90deg, #ff0055, #ff5500); color: #fff;
+      box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+    }
+    .btn-cyber-reward {
+      background: linear-gradient(90deg, #ffd700, #ff8c00); color: #000;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    .btn-cyber-secondary {
+      background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid #445;
+    }
+
+    .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; max-height: 220px; overflow-y: auto; }
+    .shop-card {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid #334;
+      border-radius: 10px; padding: 10px; cursor: pointer;
+    }
+    .shop-card.active { border-color: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+    .preview-box { height: 50px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div class="knife-stack" id="knife-stack"></div>
+  <div class="tap-guide"><i class="fa-solid fa-hand-pointer"></i> Pichoqni otish uchun ekranni bosing!</div>
+
+  <div class="hud">
+    <div class="hud-box">
+      <a href="../../index.html" class="text-white text-decoration-none me-2"><i class="fa-solid fa-house"></i></a>
+      <span class="text-warning"><i class="fa-solid fa-crosshairs"></i> Bosqich: <span id="ui-stage">1</span></span>
+      <span class="text-white ms-2">Ball: <span id="ui-score">0</span></span>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="hud-box">
+        <span class="text-warning"><i class="fa-solid fa-coins"></i> <span id="ui-coins">0</span></span>
+        <span class="text-info ms-2"><i class="fa-solid fa-gem"></i> <span id="ui-gems">0</span></span>
+      </div>
+      <button class="btn-hud" id="btn-shop" title="Pichoqlar Do'koni"><i class="fa-solid fa-khanda"></i></button>
+      <button class="btn-hud" id="btn-pause" title="Pauza"><i class="fa-solid fa-pause"></i></button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="game-modal" id="modal-pause">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">TO'XTATILDI</h2>
+      <p class="text-secondary small">3D Knife Hit Master</p>
+      
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-khanda fa-2x mb-2 text-muted"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-primary" id="btn-resume"><i class="fa-solid fa-play"></i> Davom ettirish</button>
+        <button class="btn-cyber btn-cyber-secondary" id="btn-pause-restart"><i class="fa-solid fa-rotate-right"></i> Qayta boshlash</button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary"><i class="fa-solid fa-home"></i> Bosh sahifa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="game-modal" id="modal-gameover">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber text-danger">PICHOQ TEKIB KETDI!</h2>
+      <div class="mb-2">
+        <span class="fs-5 text-light">Ball: <strong id="over-score" class="text-warning">0</strong></span>
+      </div>
+      <div class="mb-3">
+        <span class="text-info me-3"><i class="fa-solid fa-coins text-warning"></i> +<span id="over-coins">0</span></span>
+        <span class="text-info"><i class="fa-solid fa-gem text-cyan"></i> +<span id="over-gems">0</span></span>
+      </div>
+
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-rectangle-ad fa-2x mb-2 text-warning"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-reward" id="btn-reward-double">
+          <i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)
+        </button>
+        <button class="btn-cyber btn-cyber-primary" id="btn-gameover-restart">
+          <i class="fa-solid fa-rotate-right"></i> Qayta O'ynash
+        </button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary">
+          <i class="fa-solid fa-house"></i> Bosh Sahifa
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="game-modal" id="modal-shop">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">PICHOQ DO'KONI</h2>
+      <p class="text-secondary small">Kiber pichoq modelini tanlang</p>
+      <div class="shop-grid" id="shop-items-container"></div>
+      <div class="mt-3">
+        <button class="btn-cyber btn-cyber-primary w-100" id="btn-shop-close"><i class="fa-solid fa-check"></i> Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const Storage = {
+      getCoins: () => parseInt(localStorage.getItem('cg_coins')) || 250,
+      setCoins: (n) => { localStorage.setItem('cg_coins', n); Storage.updateUI(); },
+      addCoins: (n) => Storage.setCoins(Storage.getCoins() + n),
+      getGems: () => parseInt(localStorage.getItem('cg_gems')) || 15,
+      setGems: (n) => { localStorage.setItem('cg_gems', n); Storage.updateUI(); },
+      addGems: (n) => Storage.setGems(Storage.getGems() + n),
+      getKnife: () => localStorage.getItem('cg_knife_skin') || 'neon_blade',
+      setKnife: (s) => localStorage.setItem('cg_knife_skin', s),
+      getUnlocked: () => JSON.parse(localStorage.getItem('cg_knife_skins') || '["neon_blade"]'),
+      unlock: (s) => {
+        let list = Storage.getUnlocked();
+        if (!list.includes(s)) list.push(s);
+        localStorage.setItem('cg_knife_skins', JSON.stringify(list));
+      },
+      updateUI: () => {
+        const elC = document.getElementById('ui-coins');
+        const elG = document.getElementById('ui-gems');
+        if (elC) elC.textContent = Storage.getCoins();
+        if (elG) elG.textContent = Storage.getGems();
+      }
+    };
+
+    const Sound = {
+      ctx: null,
+      init: () => {
+        if (!Sound.ctx) Sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (Sound.ctx.state === 'suspended') Sound.ctx.resume();
+      },
+      play: (freq, type, dur, endFreq = null, vol = 0.1) => {
+        try {
+          Sound.init();
+          const osc = Sound.ctx.createOscillator();
+          const gain = Sound.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, Sound.ctx.currentTime);
+          if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, Sound.ctx.currentTime + dur);
+          gain.gain.setValueAtTime(vol, Sound.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, Sound.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(Sound.ctx.destination);
+          osc.start();
+          osc.stop(Sound.ctx.currentTime + dur);
+        } catch(e) {}
+      },
+      throw: () => Sound.play(600, 'sine', 0.1, 200),
+      hitWood: () => Sound.play(180, 'triangle', 0.15, 90, 0.2),
+      hitKnife: () => Sound.play(800, 'sawtooth', 0.3, 100, 0.25),
+      stagePass: () => Sound.play(523, 'sine', 0.3, 1046, 0.2),
+      coin: () => Sound.play(987, 'sine', 0.15, 1318),
+      gem: () => Sound.play(1318, 'sine', 0.2, 2093),
+      click: () => Sound.play(600, 'triangle', 0.05)
+    };
+
+    let scene, camera, renderer;
+    let targetDisc;
+    let activeKnife = null;
+    let stuckAngles = [];
+    let knivesLeft = 7;
+    let stage = 1, score = 0, sessionCoins = 0, sessionGems = 0;
+    let isGameOver = false, isPaused = false;
+    let discSpeed = 0.035;
+
+    const KNIVES = [
+      { id: 'neon_blade', name: 'Cyber Dagger', color: 0x00f3ff, price: 0, type: 'coins' },
+      { id: 'crimson', name: 'Plasma Katana', color: 0xff0055, price: 200, type: 'coins' },
+      { id: 'matrix', name: 'Matrix Kunai', color: 0x00ff66, price: 350, type: 'coins' },
+      { id: 'gold', name: 'Golden Edge', color: 0xffd700, price: 8, type: 'gems' }
+    ];
+
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0, 14);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xff0055, 1.2);
+      dirLight.position.set(5, 10, 10);
+      scene.add(dirLight);
+
+      createTargetDisc();
+      prepareStage();
+      setupEvents();
+      setupShopUI();
+      Storage.updateUI();
+
+      animate();
+    }
+
+    function createTargetDisc() {
+      targetDisc = new THREE.Group();
+
+      // Markaziy kiber disk
+      const discGeo = new THREE.CylinderGeometry(2.6, 2.6, 0.6, 32);
+      discGeo.rotateX(Math.PI / 2);
+      const discMat = new THREE.MeshStandardMaterial({ color: 0x181a28, roughness: 0.3, metalness: 0.7 });
+      const disc = new THREE.Mesh(discGeo, discMat);
+      targetDisc.add(disc);
+
+      // Neon xoshiya
+      const ringGeo = new THREE.TorusGeometry(2.6, 0.08, 12, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      targetDisc.add(ring);
+
+      targetDisc.position.set(0, 2.5, 0);
+      scene.add(targetDisc);
+    }
+
+    function createKnifeMesh() {
+      const knifeId = Storage.getKnife();
+      const kData = KNIVES.find(k => k.id === knifeId) || KNIVES[0];
+
+      const knifeGroup = new THREE.Group();
+
+      // Dam (Blade)
+      const bladeGeo = new THREE.ConeGeometry(0.25, 1.4, 4);
+      const bladeMat = new THREE.MeshStandardMaterial({
+        color: kData.color, emissive: kData.color, emissiveIntensity: 0.5, metalness: 0.8
+      });
+      const blade = new THREE.Mesh(bladeGeo, bladeMat);
+      blade.position.y = 0.7;
+      knifeGroup.add(blade);
+
+      // Dasta (Handle)
+      const handleGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.8, 8);
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+      const handle = new THREE.Mesh(handleGeo, handleMat);
+      handle.position.y = -0.3;
+      knifeGroup.add(handle);
+
+      return knifeGroup;
+    }
+
+    function spawnWaitingKnife() {
+      if (activeKnife || isGameOver || knivesLeft <= 0) return;
+      activeKnife = createKnifeMesh();
+      activeKnife.position.set(0, -4.5, 0);
+      scene.add(activeKnife);
+      activeKnife.userData = { isFlying: false };
+    }
+
+    function throwKnife() {
+      if (!activeKnife || activeKnife.userData.isFlying || isGameOver || isPaused) return;
+      activeKnife.userData.isFlying = true;
+      Sound.throw();
+    }
+
+    function prepareStage() {
+      stuckAngles = [];
+      // Diskdagi eski pichoqlarni tozalash
+      for (let i = targetDisc.children.length - 1; i >= 0; i--) {
+        const c = targetDisc.children[i];
+        if (c.userData && c.userData.isStuckKnife) {
+          targetDisc.remove(c);
+        }
+      }
+
+      knivesLeft = Math.min(6 + stage, 10);
+      discSpeed = (0.035 + stage * 0.005) * (stage % 2 === 0 ? -1 : 1);
+
+      updateKnifeStackUI();
+      document.getElementById('ui-stage').textContent = stage;
+      spawnWaitingKnife();
+    }
+
+    function updateKnifeStackUI() {
+      const stack = document.getElementById('knife-stack');
+      stack.innerHTML = '';
+      for (let i = 0; i < knivesLeft; i++) {
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-khanda knife-icon';
+        stack.appendChild(icon);
+      }
+    }
+
+    function setupEvents() {
+      const container = document.getElementById('canvas-container');
+      container.addEventListener('pointerdown', (e) => {
+        if (!isPaused && !isGameOver) throwKnife();
+      });
+
+      // Modals
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', togglePause);
+      document.getElementById('btn-pause-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-gameover-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-shop').addEventListener('click', () => { isPaused = true; document.getElementById('modal-shop').style.display = 'flex'; });
+      document.getElementById('btn-shop-close').addEventListener('click', () => { document.getElementById('modal-shop').style.display = 'none'; isPaused = false; });
+
+      document.getElementById('btn-reward-double').addEventListener('click', () => {
+        Sound.click();
+        const btn = document.getElementById('btn-reward-double');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Video yuklanmoqda...';
+        setTimeout(() => {
+          const bonus = sessionCoins;
+          Storage.addCoins(bonus);
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> +${bonus} Tanga olindi!`;
+          Sound.gem();
+        }, 3000);
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function togglePause() {
+      if (isGameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('modal-pause').style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      Sound.hitKnife();
+      Storage.addCoins(sessionCoins);
+      Storage.addGems(sessionGems);
+
+      document.getElementById('over-score').textContent = score;
+      document.getElementById('over-coins').textContent = sessionCoins;
+      document.getElementById('over-gems').textContent = sessionGems;
+      document.getElementById('modal-gameover').style.display = 'flex';
+    }
+
+    function restartGame() {
+      isGameOver = false;
+      isPaused = false;
+      stage = 1;
+      score = 0;
+      sessionCoins = 0;
+      sessionGems = 0;
+      if (activeKnife) { scene.remove(activeKnife); activeKnife = null; }
+
+      document.getElementById('ui-score').textContent = '0';
+      document.getElementById('modal-gameover').style.display = 'none';
+      document.getElementById('modal-pause').style.display = 'none';
+
+      prepareStage();
+      const rBtn = document.getElementById('btn-reward-double');
+      rBtn.disabled = false;
+      rBtn.innerHTML = '<i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)';
+    }
+
+    function setupShopUI() {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      const unlocked = Storage.getUnlocked();
+      const current = Storage.getKnife();
+
+      KNIVES.forEach(k => {
+        const isBought = unlocked.includes(k.id);
+        const isActive = current === k.id;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="preview-box" style="color: #${k.color.toString(16).padStart(6, '0')};">
+            <i class="fa-solid fa-khanda"></i>
+          </div>
+          <div class="fw-bold small">${k.name}</div>
+          <div class="small text-muted mb-2">
+            ${isBought ? (isActive ? 'Faol' : 'Olingan') : (k.type === 'coins' ? `${k.price} <i class="fa-solid fa-coins text-warning"></i>` : `${k.price} <i class="fa-solid fa-gem text-info"></i>`)}
+          </div>
+          <button class="btn btn-sm w-100 ${isActive ? 'btn-outline-info' : 'btn-danger'}" ${isActive ? 'disabled' : ''}>
+            ${isActive ? 'Tanlangan' : (isBought ? 'Tanlash' : 'Olish')}
+          </button>
+        `;
+
+        card.querySelector('button').addEventListener('click', () => {
+          if (isBought) {
+            Storage.setKnife(k.id);
+            setupShopUI();
+          } else {
+            if (k.type === 'coins' && Storage.getCoins() >= k.price) {
+              Storage.addCoins(-k.price);
+              Storage.unlock(k.id);
+              Storage.setKnife(k.id);
+              Sound.gem();
+              setupShopUI();
+            } else if (k.type === 'gems' && Storage.getGems() >= k.price) {
+              Storage.addGems(-k.price);
+              Storage.unlock(k.id);
+              Storage.setKnife(k.id);
+              Sound.gem();
+              setupShopUI();
+            } else {
+              alert('Mablag\' yetarli emas!');
+            }
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isPaused || isGameOver) return;
+
+      // Disk aylanishi
+      targetDisc.rotation.z += discSpeed;
+
+      // Uchar pichoq harakati
+      if (activeKnife && activeKnife.userData.isFlying) {
+        activeKnife.position.y += 0.8;
+
+        // Diskka qadalish
+        if (activeKnife.position.y >= 0.3) {
+          // Qadalish burchagini aniqlash
+          const currentDiscAngle = (targetDisc.rotation.z) % (Math.PI * 2);
+          const impactAngle = (-currentDiscAngle - Math.PI / 2) % (Math.PI * 2);
+
+          // Boshqa pichoq bilan to'qnashuvni tekshirish
+          let hitOther = false;
+          for (let ang of stuckAngles) {
+            let diff = Math.abs(ang - impactAngle) % (Math.PI * 2);
+            if (diff > Math.PI) diff = Math.PI * 2 - diff;
+            if (diff < 0.22) { // 12-14 daraja yaqinlik
+              hitOther = true;
+              break;
+            }
+          }
+
+          if (hitOther) {
+            triggerGameOver();
+            return;
+          }
+
+          // Qadash muvaffaqiyatli!
+          Sound.hitWood();
+          stuckAngles.push(impactAngle);
+
+          // Disk ichiga pichoq meshini qo'shish
+          const stuckMesh = createKnifeMesh();
+          stuckMesh.userData = { isStuckKnife: true };
+          stuckMesh.position.set(Math.cos(impactAngle) * 2.6, Math.sin(impactAngle) * 2.6, 0);
+          stuckMesh.rotation.z = impactAngle - Math.PI / 2;
+          targetDisc.add(stuckMesh);
+
+          scene.remove(activeKnife);
+          activeKnife = null;
+
+          score++;
+          sessionCoins += 2;
+          knivesLeft--;
+          document.getElementById('ui-score').textContent = score;
+          document.getElementById('ui-coins').textContent = Storage.getCoins() + sessionCoins;
+          updateKnifeStackUI();
+
+          if (knivesLeft <= 0) {
+            // Bosqich muvaffaqiyatli o'tildi!
+            Sound.stagePass();
+            stage++;
+            sessionGems += 1;
+            document.getElementById('ui-gems').textContent = Storage.getGems() + sessionGems;
+            setTimeout(prepareStage, 600);
+          } else {
+            setTimeout(spawnWaitingKnife, 120);
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.onload = initThree;
+  </script>
+</body>
+</html>

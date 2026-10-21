@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>3D Cube Match 2048 | CyberGames</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --neon-cyan: #00f3ff;
+      --neon-magenta: #ff007f;
+      --dark-bg: #090c18;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: var(--dark-bg); font-family: 'Segoe UI', sans-serif; color: #fff; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; }
+
+    .hud {
+      position: absolute; top: 15px; left: 0; width: 100%; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px; pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(10, 16, 28, 0.85);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+      padding: 8px 16px; border-radius: 20px;
+      font-weight: bold; font-size: 14px;
+      backdrop-filter: blur(5px);
+      display: flex; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    .btn-hud {
+      background: rgba(0, 243, 255, 0.2); border: 1px solid var(--neon-cyan);
+      color: #fff; border-radius: 50%; width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: 0.2s; pointer-events: auto;
+    }
+    .btn-hud:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
+
+    .aim-guide {
+      position: absolute; bottom: 35px; width: 100%; text-align: center;
+      font-size: 14px; color: #778; z-index: 10; pointer-events: none;
+    }
+
+    .game-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(4, 7, 15, 0.9); z-index: 100;
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      backdrop-filter: blur(8px); padding: 15px;
+    }
+    .modal-content-cyber {
+      background: linear-gradient(145deg, #0e1428, #060914);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+      border-radius: 16px; padding: 25px; max-width: 440px; width: 100%;
+      text-align: center;
+    }
+    .modal-title-cyber {
+      font-size: 26px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 15px;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .ad-container-300x250 {
+      width: 300px; height: 250px; margin: 15px auto;
+      background: #02040a; border: 1px dashed #445;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .ad-badge {
+      position: absolute; top: 4px; right: 6px; font-size: 9px;
+      color: #889; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .ad-placeholder-text { color: #556; font-size: 12px; text-align: center; }
+
+    .modal-actions-area {
+      margin-top: 30px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .btn-cyber {
+      padding: 12px 20px; font-weight: bold; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+      border: none; transition: 0.2s; font-size: 15px; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-cyber-primary {
+      background: linear-gradient(90deg, #00f3ff, #0088ff); color: #000;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+    }
+    .btn-cyber-reward {
+      background: linear-gradient(90deg, #ffd700, #ff8c00); color: #000;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    .btn-cyber-secondary {
+      background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid #445;
+    }
+
+    .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; max-height: 220px; overflow-y: auto; }
+    .shop-card {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid #334;
+      border-radius: 10px; padding: 10px; cursor: pointer;
+    }
+    .shop-card.active { border-color: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+    .preview-box { height: 50px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div class="aim-guide"><i class="fa-solid fa-arrows-left-right"></i> Torting, yo'naltiring va qo'yib yuboring!</div>
+
+  <div class="hud">
+    <div class="hud-box">
+      <a href="../../index.html" class="text-white text-decoration-none me-2"><i class="fa-solid fa-house"></i></a>
+      <span class="text-warning"><i class="fa-solid fa-trophy"></i> Ball: <span id="ui-score">0</span></span>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="hud-box">
+        <span class="text-warning"><i class="fa-solid fa-coins"></i> <span id="ui-coins">0</span></span>
+        <span class="text-info ms-2"><i class="fa-solid fa-gem"></i> <span id="ui-gems">0</span></span>
+      </div>
+      <button class="btn-hud" id="btn-shop" title="Do'kon"><i class="fa-solid fa-shapes"></i></button>
+      <button class="btn-hud" id="btn-pause" title="Pauza"><i class="fa-solid fa-pause"></i></button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="game-modal" id="modal-pause">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">TO'XTATILDI</h2>
+      <p class="text-secondary small">3D Cube Match 2048</p>
+      
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-cube fa-2x mb-2 text-muted"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-primary" id="btn-resume"><i class="fa-solid fa-play"></i> Davom ettirish</button>
+        <button class="btn-cyber btn-cyber-secondary" id="btn-pause-restart"><i class="fa-solid fa-rotate-right"></i> Qayta boshlash</button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary"><i class="fa-solid fa-home"></i> Bosh sahifa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="game-modal" id="modal-gameover">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber text-danger">MAYDON TO'LDI!</h2>
+      <div class="mb-2">
+        <span class="fs-5 text-light">Ball: <strong id="over-score" class="text-warning">0</strong></span>
+      </div>
+      <div class="mb-3">
+        <span class="text-info me-3"><i class="fa-solid fa-coins text-warning"></i> +<span id="over-coins">0</span></span>
+        <span class="text-info"><i class="fa-solid fa-gem text-cyan"></i> +<span id="over-gems">0</span></span>
+      </div>
+
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-rectangle-ad fa-2x mb-2 text-warning"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-reward" id="btn-reward-double">
+          <i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)
+        </button>
+        <button class="btn-cyber btn-cyber-primary" id="btn-gameover-restart">
+          <i class="fa-solid fa-rotate-right"></i> Qayta O'ynash
+        </button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary">
+          <i class="fa-solid fa-house"></i> Bosh Sahifa
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="game-modal" id="modal-shop">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">KUB DO'KONI</h2>
+      <p class="text-secondary small">Kub uslubini tanlang</p>
+      <div class="shop-grid" id="shop-items-container"></div>
+      <div class="mt-3">
+        <button class="btn-cyber btn-cyber-primary w-100" id="btn-shop-close"><i class="fa-solid fa-check"></i> Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const Storage = {
+      getCoins: () => parseInt(localStorage.getItem('cg_coins')) || 250,
+      setCoins: (n) => { localStorage.setItem('cg_coins', n); Storage.updateUI(); },
+      addCoins: (n) => Storage.setCoins(Storage.getCoins() + n),
+      getGems: () => parseInt(localStorage.getItem('cg_gems')) || 15,
+      setGems: (n) => { localStorage.setItem('cg_gems', n); Storage.updateUI(); },
+      addGems: (n) => Storage.setGems(Storage.getGems() + n),
+      getTheme: () => localStorage.getItem('cg_2048_theme') || 'classic',
+      setTheme: (s) => localStorage.setItem('cg_2048_theme', s),
+      getUnlocked: () => JSON.parse(localStorage.getItem('cg_2048_themes') || '["classic"]'),
+      unlock: (s) => {
+        let list = Storage.getUnlocked();
+        if (!list.includes(s)) list.push(s);
+        localStorage.setItem('cg_2048_themes', JSON.stringify(list));
+      },
+      updateUI: () => {
+        const elC = document.getElementById('ui-coins');
+        const elG = document.getElementById('ui-gems');
+        if (elC) elC.textContent = Storage.getCoins();
+        if (elG) elG.textContent = Storage.getGems();
+      }
+    };
+
+    const Sound = {
+      ctx: null,
+      init: () => {
+        if (!Sound.ctx) Sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (Sound.ctx.state === 'suspended') Sound.ctx.resume();
+      },
+      play: (freq, type, dur, endFreq = null, vol = 0.1) => {
+        try {
+          Sound.init();
+          const osc = Sound.ctx.createOscillator();
+          const gain = Sound.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, Sound.ctx.currentTime);
+          if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, Sound.ctx.currentTime + dur);
+          gain.gain.setValueAtTime(vol, Sound.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, Sound.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(Sound.ctx.destination);
+          osc.start();
+          osc.stop(Sound.ctx.currentTime + dur);
+        } catch(e) {}
+      },
+      shoot: () => Sound.play(500, 'sine', 0.12, 200),
+      merge: () => Sound.play(523, 'triangle', 0.2, 1046, 0.2),
+      bounce: () => Sound.play(180, 'sine', 0.08, 120),
+      coin: () => Sound.play(987, 'sine', 0.15, 1318),
+      gem: () => Sound.play(1318, 'sine', 0.2, 2093),
+      click: () => Sound.play(600, 'triangle', 0.05)
+    };
+
+    let scene, camera, renderer;
+    let score = 0, sessionCoins = 0, sessionGems = 0;
+    let isGameOver = false, isPaused = false;
+
+    // Kublar
+    const boardCubes = [];
+    let currentCube = null;
+    let aimX = 0;
+    let isDragging = false;
+    let canShoot = true;
+
+    const COLOR_MAP = {
+      2: '#38bdf8',
+      4: '#06b6d4',
+      8: '#10b981',
+      16: '#f59e0b',
+      32: '#ea580c',
+      64: '#dc2626',
+      128: '#e11d48',
+      256: '#9333ea',
+      512: '#4f46e5',
+      1024: '#0284c7',
+      2048: '#eab308'
+    };
+
+    const THEMES = [
+      { id: 'classic', name: 'Cyber Neon', color: 0x00f3ff, price: 0, type: 'coins' },
+      { id: 'fire', name: 'Inferno', color: 0xff3300, price: 200, type: 'coins' },
+      { id: 'purple', name: 'Quantum Void', color: 0xa855f7, price: 350, type: 'coins' },
+      { id: 'gold', name: 'Golden 2048', color: 0xffd700, price: 7, type: 'gems' }
+    ];
+
+    function createCubeTexture(val) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      const col = COLOR_MAP[val] || '#ffd700';
+      ctx.fillStyle = col;
+      ctx.fillRect(0, 0, 128, 128);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, 122, 122);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 50px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(val.toString(), 64, 64);
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x090c18, 0.02);
+
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 150);
+      camera.position.set(0, 14, 18);
+      camera.lookAt(0, 0, -3);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00f3ff, 1.2);
+      dirLight.position.set(5, 20, 10);
+      scene.add(dirLight);
+
+      buildArena();
+      spawnNextCube();
+      setupEvents();
+      setupShopUI();
+      Storage.updateUI();
+
+      animate();
+    }
+
+    function buildArena() {
+      // Stol yuzasi
+      const tableGeo = new THREE.BoxGeometry(8, 0.4, 22);
+      const tableMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+      const table = new THREE.Mesh(tableGeo, tableMat);
+      table.position.set(0, -0.2, -4);
+      scene.add(table);
+
+      // Chekka devorlar
+      const wallMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, 22), wallMat);
+      wallL.position.set(-4.15, 0.55, -4);
+      const wallR = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, 22), wallMat);
+      wallR.position.set(4.15, 0.55, -4);
+      const wallBack = new THREE.Mesh(new THREE.BoxGeometry(8.6, 1.5, 0.3), wallMat);
+      wallBack.position.set(0, 0.55, -15.15);
+
+      scene.add(wallL, wallR, wallBack);
+    }
+
+    function createCubeMesh(val) {
+      const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+      const tex = createCubeTexture(val);
+      const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.2 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.userData = { val: val, velZ: 0, velX: 0, isShot: false };
+      return mesh;
+    }
+
+    function spawnNextCube() {
+      const values = [2, 4, 8, 16];
+      const val = values[Math.floor(Math.random() * values.length)];
+      currentCube = createCubeMesh(val);
+      currentCube.position.set(aimX, 0.75, 5);
+      scene.add(currentCube);
+      canShoot = true;
+    }
+
+    function shootCube() {
+      if (!currentCube || !canShoot || isGameOver) return;
+      canShoot = false;
+      Sound.shoot();
+      currentCube.userData.velZ = -28;
+      currentCube.userData.isShot = true;
+      boardCubes.push(currentCube);
+      currentCube = null;
+
+      setTimeout(() => {
+        if (!isGameOver) spawnNextCube();
+      }, 700);
+    }
+
+    function setupEvents() {
+      const container = document.getElementById('canvas-container');
+
+      const handleMove = (clientX) => {
+        const norm = (clientX / window.innerWidth) * 2 - 1;
+        aimX = Math.max(-3.0, Math.min(3.0, norm * 3.4));
+        if (currentCube && !currentCube.userData.isShot) {
+          currentCube.position.x = aimX;
+        }
+      };
+
+      container.addEventListener('pointerdown', (e) => {
+        if (isPaused || isGameOver) return;
+        isDragging = true;
+        handleMove(e.clientX);
+      });
+
+      container.addEventListener('pointermove', (e) => {
+        if (isDragging) handleMove(e.clientX);
+      });
+
+      container.addEventListener('pointerup', () => {
+        if (isDragging) {
+          isDragging = false;
+          shootCube();
+        }
+      });
+
+      // Modals
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', togglePause);
+      document.getElementById('btn-pause-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-gameover-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-shop').addEventListener('click', () => { isPaused = true; document.getElementById('modal-shop').style.display = 'flex'; });
+      document.getElementById('btn-shop-close').addEventListener('click', () => { document.getElementById('modal-shop').style.display = 'none'; isPaused = false; });
+
+      document.getElementById('btn-reward-double').addEventListener('click', () => {
+        Sound.click();
+        const btn = document.getElementById('btn-reward-double');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Video yuklanmoqda...';
+        setTimeout(() => {
+          const bonus = sessionCoins;
+          Storage.addCoins(bonus);
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> +${bonus} Tanga olindi!`;
+          Sound.gem();
+        }, 3000);
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function togglePause() {
+      if (isGameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('modal-pause').style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      Storage.addCoins(sessionCoins);
+      Storage.addGems(sessionGems);
+
+      document.getElementById('over-score').textContent = score;
+      document.getElementById('over-coins').textContent = sessionCoins;
+      document.getElementById('over-gems').textContent = sessionGems;
+      document.getElementById('modal-gameover').style.display = 'flex';
+    }
+
+    function restartGame() {
+      isGameOver = false;
+      isPaused = false;
+      score = 0;
+      sessionCoins = 0;
+      sessionGems = 0;
+      boardCubes.forEach(c => scene.remove(c));
+      boardCubes.length = 0;
+      if (currentCube) { scene.remove(currentCube); currentCube = null; }
+
+      document.getElementById('ui-score').textContent = '0';
+      document.getElementById('modal-gameover').style.display = 'none';
+      document.getElementById('modal-pause').style.display = 'none';
+
+      spawnNextCube();
+      const rBtn = document.getElementById('btn-reward-double');
+      rBtn.disabled = false;
+      rBtn.innerHTML = '<i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)';
+    }
+
+    function setupShopUI() {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      const unlocked = Storage.getUnlocked();
+      const current = Storage.getTheme();
+
+      THEMES.forEach(t => {
+        const isBought = unlocked.includes(t.id);
+        const isActive = current === t.id;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="preview-box" style="background: #${t.color.toString(16).padStart(6, '0')}; color: #000;">
+            2048
+          </div>
+          <div class="fw-bold small">${t.name}</div>
+          <div class="small text-muted mb-2">
+            ${isBought ? (isActive ? 'Faol' : 'Olingan') : (t.type === 'coins' ? `${t.price} <i class="fa-solid fa-coins text-warning"></i>` : `${t.price} <i class="fa-solid fa-gem text-info"></i>`)}
+          </div>
+          <button class="btn btn-sm w-100 ${isActive ? 'btn-outline-info' : 'btn-primary'}" ${isActive ? 'disabled' : ''}>
+            ${isActive ? 'Tanlangan' : (isBought ? 'Tanlash' : 'Olish')}
+          </button>
+        `;
+
+        card.querySelector('button').addEventListener('click', () => {
+          if (isBought) {
+            Storage.setTheme(t.id);
+            setupShopUI();
+          } else {
+            if (t.type === 'coins' && Storage.getCoins() >= t.price) {
+              Storage.addCoins(-t.price);
+              Storage.unlock(t.id);
+              Storage.setTheme(t.id);
+              Sound.gem();
+              setupShopUI();
+            } else if (t.type === 'gems' && Storage.getGems() >= t.price) {
+              Storage.addGems(-t.price);
+              Storage.unlock(t.id);
+              Storage.setTheme(t.id);
+              Sound.gem();
+              setupShopUI();
+            } else {
+              alert('Mablag\' yetarli emas!');
+            }
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isPaused || isGameOver) return;
+
+      const delta = Math.min(clock.getDelta(), 0.05);
+
+      // Kublar fizikasi va birlashish
+      for (let i = 0; i < boardCubes.length; i++) {
+        const c1 = boardCubes[i];
+        if (Math.abs(c1.userData.velZ) > 0.1) {
+          c1.position.z += c1.userData.velZ * delta;
+          c1.userData.velZ *= 0.96; // Ishqalanish
+
+          // Orqa devorga to'qnashuv
+          if (c1.position.z <= -14.2) {
+            c1.position.z = -14.2;
+            c1.userData.velZ = 0;
+            Sound.bounce();
+          }
+
+          // Chekka devorlar
+          if (c1.position.x < -3.2) { c1.position.x = -3.2; }
+          if (c1.position.x > 3.2) { c1.position.x = 3.2; }
+
+          // Boshqa kublar bilan to'qnashuv
+          for (let j = 0; j < boardCubes.length; j++) {
+            if (i === j) continue;
+            const c2 = boardCubes[j];
+
+            if (c1.position.distanceTo(c2.position) < 1.45) {
+              if (c1.userData.val === c2.userData.val) {
+                // Birlashish (Merge!)
+                Sound.merge();
+                const newVal = c1.userData.val * 2;
+                score += newVal;
+                sessionCoins += Math.floor(newVal / 4);
+                document.getElementById('ui-score').textContent = score;
+                document.getElementById('ui-coins').textContent = Storage.getCoins() + sessionCoins;
+
+                if (newVal >= 128) {
+                  sessionGems += 1;
+                  document.getElementById('ui-gems').textContent = Storage.getGems() + sessionGems;
+                }
+
+                // c2 qiymatini yangilash, c1 ni yo'q qilish
+                c2.userData.val = newVal;
+                c2.material.map = createCubeTexture(newVal);
+
+                // Sakrash effekti
+                c2.scale.set(1.3, 1.3, 1.3);
+                setTimeout(() => c2.scale.set(1, 1, 1), 200);
+
+                scene.remove(c1);
+                boardCubes.splice(i, 1);
+                i--;
+                break;
+              } else {
+                // Boshqa qiymat bo'lsa to'xtash
+                c1.userData.velZ = 0;
+                Sound.bounce();
+              }
+            }
+          }
+
+          // Agar maydon to'lib otish chizig'iga chiqsa
+          if (c1.position.z >= 3.5 && Math.abs(c1.userData.velZ) < 0.2) {
+            triggerGameOver();
+            return;
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.onload = initThree;
+  </script>
+</body>
+</html>

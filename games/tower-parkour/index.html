@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>3D Endless Tower Parkour | CyberGames</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --neon-green: #00ff88;
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ff007f;
+      --dark-bg: #060911;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: var(--dark-bg); font-family: 'Segoe UI', sans-serif; color: #fff; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+    .hud {
+      position: absolute; top: 15px; left: 0; width: 100%; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px; pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(10, 16, 28, 0.8);
+      border: 1px solid var(--neon-green);
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+      padding: 8px 16px; border-radius: 20px;
+      font-weight: bold; font-size: 14px;
+      backdrop-filter: blur(5px);
+      display: flex; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    .btn-hud {
+      background: rgba(0, 255, 136, 0.2); border: 1px solid var(--neon-green);
+      color: #fff; border-radius: 50%; width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: 0.2s; pointer-events: auto;
+    }
+    .btn-hud:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 15px var(--neon-green); }
+
+    /* Mobile Controls */
+    .mobile-controls {
+      position: absolute; bottom: 25px; left: 0; width: 100%;
+      display: flex; justify-content: space-between; padding: 0 25px;
+      z-index: 10; pointer-events: none;
+    }
+    .touch-btn {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: rgba(0, 255, 136, 0.25); border: 2px solid var(--neon-green);
+      color: #fff; font-size: 24px; display: flex; align-items: center; justify-content: center;
+      pointer-events: auto; touch-action: manipulation;
+    }
+    .touch-btn:active { background: var(--neon-green); color: #000; }
+    .touch-btn.jump { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.25); }
+    .touch-btn.jump:active { background: var(--neon-cyan); color: #000; }
+
+    .game-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(4, 7, 15, 0.9); z-index: 100;
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      backdrop-filter: blur(8px); padding: 15px;
+    }
+    .modal-content-cyber {
+      background: linear-gradient(145deg, #09121c, #05080e);
+      border: 2px solid var(--neon-green);
+      box-shadow: 0 0 25px rgba(0, 255, 136, 0.4);
+      border-radius: 16px; padding: 25px; max-width: 440px; width: 100%;
+      text-align: center;
+    }
+    .modal-title-cyber {
+      font-size: 26px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 15px;
+      background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .ad-container-300x250 {
+      width: 300px; height: 250px; margin: 15px auto;
+      background: #02040a; border: 1px dashed #445;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .ad-badge {
+      position: absolute; top: 4px; right: 6px; font-size: 9px;
+      color: #889; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .ad-placeholder-text { color: #556; font-size: 12px; text-align: center; }
+
+    .modal-actions-area {
+      margin-top: 30px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .btn-cyber {
+      padding: 12px 20px; font-weight: bold; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+      border: none; transition: all 0.2s; font-size: 15px; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-cyber-primary {
+      background: linear-gradient(90deg, #00ff88, #00bb66); color: #000;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+    }
+    .btn-cyber-reward {
+      background: linear-gradient(90deg, #ffd700, #ff8c00); color: #000;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    .btn-cyber-secondary {
+      background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid #445;
+    }
+
+    .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; max-height: 220px; overflow-y: auto; }
+    .shop-card {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid #334;
+      border-radius: 10px; padding: 10px; cursor: pointer;
+    }
+    .shop-card.active { border-color: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+    .preview-box { height: 50px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div class="hud">
+    <div class="hud-box">
+      <a href="../../index.html" class="text-white text-decoration-none me-2"><i class="fa-solid fa-house"></i></a>
+      <span class="text-warning"><i class="fa-solid fa-stairs"></i> <span id="ui-score">0</span> Fl</span>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="hud-box">
+        <span class="text-warning"><i class="fa-solid fa-coins"></i> <span id="ui-coins">0</span></span>
+        <span class="text-info ms-2"><i class="fa-solid fa-gem"></i> <span id="ui-gems">0</span></span>
+      </div>
+      <button class="btn-hud" id="btn-shop" title="Do'kon"><i class="fa-solid fa-cube"></i></button>
+      <button class="btn-hud" id="btn-pause" title="Pauza"><i class="fa-solid fa-pause"></i></button>
+    </div>
+  </div>
+
+  <div class="mobile-controls">
+    <div class="d-flex gap-3">
+      <button class="touch-btn" id="ctrl-left"><i class="fa-solid fa-arrow-left"></i></button>
+      <button class="touch-btn" id="ctrl-right"><i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+    <div>
+      <button class="touch-btn jump" id="ctrl-jump"><i class="fa-solid fa-angles-up"></i></button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="game-modal" id="modal-pause">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">TO'XTATILDI</h2>
+      <p class="text-secondary small">Endless Tower Parkour</p>
+      
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-layer-group fa-2x mb-2 text-muted"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-primary" id="btn-resume"><i class="fa-solid fa-play"></i> Davom ettirish</button>
+        <button class="btn-cyber btn-cyber-secondary" id="btn-pause-restart"><i class="fa-solid fa-rotate-right"></i> Qayta boshlash</button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary"><i class="fa-solid fa-home"></i> Bosh sahifa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="game-modal" id="modal-gameover">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber text-danger" style="-webkit-text-fill-color: #ff0055;">YIQILDINGIZ!</h2>
+      <div class="mb-2">
+        <span class="fs-5 text-light">Erishilgan qavat: <strong id="over-score" class="text-warning">0</strong></span>
+      </div>
+      <div class="mb-3">
+        <span class="text-info me-3"><i class="fa-solid fa-coins text-warning"></i> +<span id="over-coins">0</span></span>
+        <span class="text-info"><i class="fa-solid fa-gem text-cyan"></i> +<span id="over-gems">0</span></span>
+      </div>
+
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-rectangle-ad fa-2x mb-2 text-warning"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-reward" id="btn-reward-double">
+          <i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)
+        </button>
+        <button class="btn-cyber btn-cyber-primary" id="btn-gameover-restart">
+          <i class="fa-solid fa-rotate-right"></i> Qayta O'ynash
+        </button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary">
+          <i class="fa-solid fa-house"></i> Bosh Sahifa
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="game-modal" id="modal-shop">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">PERSONAJ DO'KONI</h2>
+      <p class="text-secondary small">Kiber-kub ko'rinishini tanlang</p>
+      <div class="shop-grid" id="shop-items-container"></div>
+      <div class="mt-3">
+        <button class="btn-cyber btn-cyber-primary w-100" id="btn-shop-close"><i class="fa-solid fa-check"></i> Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const Storage = {
+      getCoins: () => parseInt(localStorage.getItem('cg_coins')) || 250,
+      setCoins: (n) => { localStorage.setItem('cg_coins', n); Storage.updateUI(); },
+      addCoins: (n) => Storage.setCoins(Storage.getCoins() + n),
+      getGems: () => parseInt(localStorage.getItem('cg_gems')) || 15,
+      setGems: (n) => { localStorage.setItem('cg_gems', n); Storage.updateUI(); },
+      addGems: (n) => Storage.setGems(Storage.getGems() + n),
+      getSkin: () => localStorage.getItem('cg_tower_skin') || 'green',
+      setSkin: (s) => localStorage.setItem('cg_tower_skin', s),
+      getUnlocked: () => JSON.parse(localStorage.getItem('cg_tower_skins') || '["green"]'),
+      unlock: (s) => {
+        let skins = Storage.getUnlocked();
+        if (!skins.includes(s)) skins.push(s);
+        localStorage.setItem('cg_tower_skins', JSON.stringify(skins));
+      },
+      updateUI: () => {
+        const elC = document.getElementById('ui-coins');
+        const elG = document.getElementById('ui-gems');
+        if (elC) elC.textContent = Storage.getCoins();
+        if (elG) elG.textContent = Storage.getGems();
+      }
+    };
+
+    const Sound = {
+      ctx: null,
+      init: () => {
+        if (!Sound.ctx) Sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (Sound.ctx.state === 'suspended') Sound.ctx.resume();
+      },
+      play: (freq, type, dur, endFreq = null, vol = 0.1) => {
+        try {
+          Sound.init();
+          const osc = Sound.ctx.createOscillator();
+          const gain = Sound.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, Sound.ctx.currentTime);
+          if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, Sound.ctx.currentTime + dur);
+          gain.gain.setValueAtTime(vol, Sound.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, Sound.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(Sound.ctx.destination);
+          osc.start();
+          osc.stop(Sound.ctx.currentTime + dur);
+        } catch(e) {}
+      },
+      jump: () => Sound.play(300, 'sine', 0.15, 600),
+      land: () => Sound.play(180, 'triangle', 0.1, 90),
+      coin: () => Sound.play(987, 'sine', 0.15, 1318),
+      gem: () => Sound.play(1318, 'sine', 0.2, 2093),
+      fall: () => Sound.play(250, 'sawtooth', 0.4, 50, 0.15),
+      click: () => Sound.play(600, 'triangle', 0.05)
+    };
+
+    let scene, camera, renderer;
+    let playerCube;
+    let score = 0, sessionCoins = 0, sessionGems = 0;
+    let isGameOver = false, isPaused = false;
+
+    // Fizika & Holat
+    const playerRadius = 4.2;
+    let playerAngle = 0;
+    let playerY = 1.0;
+    let velocityY = 0;
+    let isGrounded = true;
+    let gravity = -26;
+    let jumpForce = 13.5;
+    let rotateInput = 0;
+
+    const platforms = [];
+    const coins = [];
+    const gems = [];
+    let highestFloor = 0;
+
+    const SKINS = [
+      { id: 'green', name: 'Cyber Lime', color: 0x00ff88, price: 0, type: 'coins' },
+      { id: 'cyan', name: 'Neon Ice', color: 0x00f3ff, price: 150, type: 'coins' },
+      { id: 'pink', name: 'Synthwave', color: 0xff007f, price: 300, type: 'coins' },
+      { id: 'gold', name: 'Solar Core', color: 0xffd700, price: 6, type: 'gems' }
+    ];
+
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x060911, 0.02);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera.position.set(0, 8, 14);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00ff88, 1.2);
+      dirLight.position.set(10, 20, 15);
+      scene.add(dirLight);
+
+      // Minora o'qi
+      const pillarGeo = new THREE.CylinderGeometry(3, 3, 500, 32);
+      const pillarMat = new THREE.MeshStandardMaterial({ color: 0x0a101f, metalness: 0.8, roughness: 0.3 });
+      const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+      pillar.position.y = 200;
+      scene.add(pillar);
+
+      createPlayer();
+      generateInitialPlatforms();
+      setupEvents();
+      setupShopUI();
+      Storage.updateUI();
+
+      animate();
+    }
+
+    function createPlayer() {
+      const skinId = Storage.getSkin();
+      const sData = SKINS.find(s => s.id === skinId) || SKINS[0];
+      if (playerCube) scene.remove(playerCube);
+
+      const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+      const mat = new THREE.MeshStandardMaterial({
+        color: sData.color, emissive: sData.color, emissiveIntensity: 0.4,
+        roughness: 0.2
+      });
+      playerCube = new THREE.Mesh(geo, mat);
+      scene.add(playerCube);
+    }
+
+    function generatePlatform(floor) {
+      const angle = (floor * 1.1) % (Math.PI * 2);
+      const y = floor * 2.8;
+
+      const platGeo = new THREE.BoxGeometry(2.4, 0.4, 1.6);
+      const isDangerous = floor > 3 && Math.random() < 0.2;
+      const platMat = new THREE.MeshStandardMaterial({
+        color: isDangerous ? 0xff2244 : 0x00bb66,
+        roughness: 0.3,
+        emissive: isDangerous ? 0xff0022 : 0x004422,
+        emissiveIntensity: 0.5
+      });
+      const plat = new THREE.Mesh(platGeo, platMat);
+
+      // Silindr yuzasiga joylash
+      plat.position.set(Math.sin(angle) * playerRadius, y, Math.cos(angle) * playerRadius);
+      plat.rotation.y = angle;
+      plat.userData = { floor, angle, isDangerous };
+      scene.add(plat);
+      platforms.push(plat);
+
+      // Tanga yoki olmos
+      if (!isDangerous) {
+        if (Math.random() < 0.4) {
+          const cGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16);
+          cGeo.rotateX(Math.PI / 2);
+          const cMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9 });
+          const c = new THREE.Mesh(cGeo, cMat);
+          c.position.set(plat.position.x, y + 1.0, plat.position.z);
+          c.userData = { floor };
+          scene.add(c);
+          coins.push(c);
+        } else if (Math.random() < 0.15) {
+          const gGeo = new THREE.OctahedronGeometry(0.35);
+          const gMat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x00f3ff, emissiveIntensity: 0.6 });
+          const g = new THREE.Mesh(gGeo, gMat);
+          g.position.set(plat.position.x, y + 1.0, plat.position.z);
+          g.userData = { floor };
+          scene.add(g);
+          gems.push(g);
+        }
+      }
+    }
+
+    function generateInitialPlatforms() {
+      // 0-qavat: boshlang'ich zamin
+      const baseGeo = new THREE.CylinderGeometry(5.5, 5.5, 0.6, 32);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0x112233 });
+      const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+      baseMesh.position.y = 0;
+      baseMesh.userData = { floor: 0, isBase: true };
+      scene.add(baseMesh);
+      platforms.push(baseMesh);
+
+      for (let i = 1; i <= 25; i++) {
+        generatePlatform(i);
+      }
+      highestFloor = 25;
+    }
+
+    function doJump() {
+      if (isGrounded) {
+        velocityY = jumpForce;
+        isGrounded = false;
+        Sound.jump();
+      }
+    }
+
+    function setupEvents() {
+      window.addEventListener('keydown', (e) => {
+        if (isGameOver) return;
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') rotateInput = -1;
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rotateInput = 1;
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') doJump();
+        if (e.key === 'p' || e.key === 'P') togglePause();
+      });
+      window.addEventListener('keyup', (e) => {
+        if (['ArrowLeft', 'a', 'A', 'ArrowRight', 'd', 'D'].includes(e.key)) rotateInput = 0;
+      });
+
+      // Mobile
+      const cl = document.getElementById('ctrl-left');
+      const cr = document.getElementById('ctrl-right');
+      const cj = document.getElementById('ctrl-jump');
+
+      cl.addEventListener('touchstart', (e) => { e.preventDefault(); rotateInput = -1; });
+      cl.addEventListener('touchend', (e) => { e.preventDefault(); rotateInput = 0; });
+      cr.addEventListener('touchstart', (e) => { e.preventDefault(); rotateInput = 1; });
+      cr.addEventListener('touchend', (e) => { e.preventDefault(); rotateInput = 0; });
+      cj.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); });
+
+      // Modallar
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', togglePause);
+      document.getElementById('btn-pause-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-gameover-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-shop').addEventListener('click', () => { isPaused = true; document.getElementById('modal-shop').style.display = 'flex'; });
+      document.getElementById('btn-shop-close').addEventListener('click', () => { document.getElementById('modal-shop').style.display = 'none'; isPaused = false; createPlayer(); });
+
+      document.getElementById('btn-reward-double').addEventListener('click', () => {
+        Sound.click();
+        const btn = document.getElementById('btn-reward-double');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Video reklama yuklanmoqda...';
+        setTimeout(() => {
+          const bonus = sessionCoins;
+          Storage.addCoins(bonus);
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> +${bonus} Tanga olindi!`;
+          Sound.gem();
+        }, 3000);
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix;
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function togglePause() {
+      if (isGameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('modal-pause').style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      Sound.fall();
+      Storage.addCoins(sessionCoins);
+      Storage.addGems(sessionGems);
+
+      document.getElementById('over-score').textContent = score;
+      document.getElementById('over-coins').textContent = sessionCoins;
+      document.getElementById('over-gems').textContent = sessionGems;
+      document.getElementById('modal-gameover').style.display = 'flex';
+    }
+
+    function restartGame() {
+      isGameOver = false;
+      isPaused = false;
+      score = 0;
+      sessionCoins = 0;
+      sessionGems = 0;
+      playerAngle = 0;
+      playerY = 1.0;
+      velocityY = 0;
+      isGrounded = true;
+
+      document.getElementById('ui-score').textContent = '0';
+      document.getElementById('modal-gameover').style.display = 'none';
+      document.getElementById('modal-pause').style.display = 'none';
+
+      // Qayta yaratish
+      platforms.forEach(p => scene.remove(p));
+      coins.forEach(c => scene.remove(c));
+      gems.forEach(g => scene.remove(g));
+      platforms.length = 0;
+      coins.length = 0;
+      gems.length = 0;
+
+      generateInitialPlatforms();
+      const rBtn = document.getElementById('btn-reward-double');
+      rBtn.disabled = false;
+      rBtn.innerHTML = '<i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)';
+    }
+
+    function setupShopUI() {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      const unlocked = Storage.getUnlocked();
+      const current = Storage.getSkin();
+
+      SKINS.forEach(skin => {
+        const isBought = unlocked.includes(skin.id);
+        const isActive = current === skin.id;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="preview-box" style="background: #${skin.color.toString(16).padStart(6, '0')};">
+            <i class="fa-solid fa-cube text-dark"></i>
+          </div>
+          <div class="fw-bold small">${skin.name}</div>
+          <div class="small text-muted mb-2">
+            ${isBought ? (isActive ? 'Faol' : 'Olingan') : (skin.type === 'coins' ? `${skin.price} <i class="fa-solid fa-coins text-warning"></i>` : `${skin.price} <i class="fa-solid fa-gem text-info"></i>`)}
+          </div>
+          <button class="btn btn-sm w-100 ${isActive ? 'btn-outline-info' : 'btn-success'}" ${isActive ? 'disabled' : ''}>
+            ${isActive ? 'Tanlangan' : (isBought ? 'Tanlash' : 'Olish')}
+          </button>
+        `;
+
+        card.querySelector('button').addEventListener('click', () => {
+          if (isBought) {
+            Storage.setSkin(skin.id);
+            setupShopUI();
+          } else {
+            if (skin.type === 'coins' && Storage.getCoins() >= skin.price) {
+              Storage.addCoins(-skin.price);
+              Storage.unlock(skin.id);
+              Storage.setSkin(skin.id);
+              Sound.gem();
+              setupShopUI();
+            } else if (skin.type === 'gems' && Storage.getGems() >= skin.price) {
+              Storage.addGems(-skin.price);
+              Storage.unlock(skin.id);
+              Storage.setSkin(skin.id);
+              Sound.gem();
+              setupShopUI();
+            } else {
+              alert('Mablag\' yetarli emas!');
+            }
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    let clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isPaused || isGameOver) return;
+
+      const delta = Math.min(clock.getDelta(), 0.1);
+
+      // Qahramon aylanishi
+      playerAngle += rotateInput * 3.5 * delta;
+      playerCube.position.x = Math.sin(playerAngle) * playerRadius;
+      playerCube.position.z = Math.cos(playerAngle) * playerRadius;
+      playerCube.rotation.y = playerAngle;
+
+      // Gravitatsiya va sakrash
+      velocityY += gravity * delta;
+      playerY += velocityY * delta;
+
+      // Platforma bilan to'qnashuvni tekshirish
+      isGrounded = false;
+
+      // Boshlang'ich yer tekshiruvi
+      if (playerY <= 0.6) {
+        playerY = 0.6;
+        velocityY = 0;
+        isGrounded = true;
+      }
+
+      platforms.forEach(plat => {
+        if (plat.userData.isBase) return;
+
+        const platY = plat.position.y;
+        // Agar pastga tushayotgan bo'lsa va platforma yuzasiga yaqin bo'lsa
+        if (velocityY <= 0 && playerY >= platY + 0.4 && playerY + velocityY * delta <= platY + 0.65) {
+          // Burchak yaqinligini tekshiramiz
+          let diffAngle = Math.abs(playerAngle - plat.userData.angle) % (Math.PI * 2);
+          if (diffAngle > Math.PI) diffAngle = Math.PI * 2 - diffAngle;
+
+          if (diffAngle < 0.28) {
+            if (plat.userData.isDangerous) {
+              triggerGameOver();
+              return;
+            }
+            playerY = platY + 0.65;
+            velocityY = 0;
+            isGrounded = true;
+            Sound.land();
+
+            if (plat.userData.floor > score) {
+              score = plat.userData.floor;
+              document.getElementById('ui-score').textContent = score;
+            }
+
+            // Yangi platformalar generatsiya qilish
+            if (score + 15 > highestFloor) {
+              for (let f = highestFloor + 1; f <= score + 20; f++) {
+                generatePlatform(f);
+              }
+              highestFloor = score + 20;
+            }
+          }
+        }
+      });
+
+      playerCube.position.y = playerY;
+
+      // Agar balandlikdan pastga qulasa (Game Over)
+      if (playerY < (score - 5) * 2.8 && score > 3) {
+        triggerGameOver();
+        return;
+      }
+
+      // Tanga yig'ish
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        c.rotation.z += 0.05;
+        if (playerCube.position.distanceTo(c.position) < 1.4) {
+          Sound.coin();
+          sessionCoins += 5;
+          document.getElementById('ui-coins').textContent = Storage.getCoins() + sessionCoins;
+          scene.remove(c);
+          coins.splice(i, 1);
+        }
+      }
+
+      // Olmos yig'ish
+      for (let i = gems.length - 1; i >= 0; i--) {
+        const g = gems[i];
+        g.rotation.y += 0.05;
+        if (playerCube.position.distanceTo(g.position) < 1.4) {
+          Sound.gem();
+          sessionGems += 1;
+          document.getElementById('ui-gems').textContent = Storage.getGems() + sessionGems;
+          scene.remove(g);
+          gems.splice(i, 1);
+        }
+      }
+
+      // Kamera o'yinchiga ergashadi
+      const targetCamY = playerY + 4.5;
+      camera.position.y += (targetCamY - camera.position.y) * 0.1;
+      camera.position.x = Math.sin(playerAngle) * 14;
+      camera.position.z = Math.cos(playerAngle) * 14;
+      camera.lookAt(0, camera.position.y - 1.5, 0);
+
+      renderer.render(scene, camera);
+    }
+
+    window.onload = initThree;
+  </script>
+</body>
+</html>

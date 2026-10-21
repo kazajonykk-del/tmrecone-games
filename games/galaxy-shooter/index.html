@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>3D Space Galaxy Shooter | CyberGames</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --neon-blue: #00d2ff;
+      --neon-purple: #9d00ff;
+      --neon-red: #ff2a5f;
+      --neon-gold: #ffd700;
+      --space-bg: #03050e;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: var(--space-bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #fff; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; }
+    
+    .hud {
+      position: absolute; top: 15px; left: 0; width: 100%; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px; pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(8, 12, 28, 0.8);
+      border: 1px solid var(--neon-blue);
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+      padding: 8px 16px; border-radius: 20px;
+      font-weight: bold; font-size: 14px;
+      backdrop-filter: blur(5px);
+      display: flex; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    .hud-score { color: var(--neon-gold); font-size: 18px; text-shadow: 0 0 8px var(--neon-gold); }
+    .btn-hud {
+      background: rgba(157, 0, 255, 0.2); border: 1px solid var(--neon-purple);
+      color: #fff; border-radius: 50%; width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; pointer-events: auto;
+    }
+    .btn-hud:hover { background: var(--neon-purple); box-shadow: 0 0 15px var(--neon-purple); }
+
+    .game-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(3, 5, 14, 0.9); z-index: 100;
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      backdrop-filter: blur(8px); padding: 15px;
+    }
+    .modal-content-cyber {
+      background: linear-gradient(145deg, #090e24, #040612);
+      border: 2px solid var(--neon-blue);
+      box-shadow: 0 0 25px rgba(0, 210, 255, 0.4);
+      border-radius: 16px; padding: 25px; max-width: 440px; width: 100%;
+      text-align: center;
+    }
+    .modal-title-cyber {
+      font-size: 26px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 15px;
+      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    /* AdSense Box (Mandatory 300x250) */
+    .ad-container-300x250 {
+      width: 300px; height: 250px; margin: 15px auto;
+      background: #02040a; border: 1px dashed #445;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .ad-badge {
+      position: absolute; top: 4px; right: 6px; font-size: 9px;
+      color: #889; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .ad-placeholder-text {
+      color: #556; font-size: 12px; text-align: center; line-height: 1.4;
+    }
+
+    /* Safe 25px+ spacing for AdSense */
+    .modal-actions-area {
+      margin-top: 30px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .btn-cyber {
+      padding: 12px 20px; font-weight: bold; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+      border: none; transition: all 0.2s; font-size: 15px; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-cyber-primary {
+      background: linear-gradient(90deg, #00d2ff, #0066ff); color: #000;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+    }
+    .btn-cyber-reward {
+      background: linear-gradient(90deg, #ffd700, #ff8c00); color: #000;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    .btn-cyber-secondary {
+      background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid #445;
+    }
+
+    .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; max-height: 220px; overflow-y: auto; }
+    .shop-card {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid #334;
+      border-radius: 10px; padding: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .shop-card.active { border-color: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
+    .preview-box { height: 50px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-box">
+      <a href="../../index.html" class="text-white text-decoration-none me-2"><i class="fa-solid fa-house"></i></a>
+      <span class="hud-score"><i class="fa-solid fa-crosshairs"></i> <span id="ui-score">0</span></span>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="hud-box">
+        <span class="text-warning"><i class="fa-solid fa-coins"></i> <span id="ui-coins">0</span></span>
+        <span class="text-info ms-2"><i class="fa-solid fa-gem"></i> <span id="ui-gems">0</span></span>
+      </div>
+      <button class="btn-hud" id="btn-shop" title="Do'kon"><i class="fa-solid fa-jet-fighter-up"></i></button>
+      <button class="btn-hud" id="btn-pause" title="Pauza"><i class="fa-solid fa-pause"></i></button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="game-modal" id="modal-pause">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">TO'XTATILDI</h2>
+      <p class="text-secondary small">Galaxy Space Shooter</p>
+      
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-satellite fa-2x mb-2 text-muted"></i><br>
+          Google AdSense 300x250<br>Galaktik Reklama Maydoni
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-primary" id="btn-resume"><i class="fa-solid fa-play"></i> Davom ettirish</button>
+        <button class="btn-cyber btn-cyber-secondary" id="btn-pause-restart"><i class="fa-solid fa-rotate-right"></i> Qayta boshlash</button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary"><i class="fa-solid fa-home"></i> Bosh sahifa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="game-modal" id="modal-gameover">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber text-danger" style="-webkit-text-fill-color: #ff2a5f;">KEMA PORTLADI!</h2>
+      <div class="mb-2">
+        <span class="fs-5 text-light">Yakuniy Ball: <strong id="over-score" class="text-warning">0</strong></span>
+      </div>
+      <div class="mb-3">
+        <span class="text-info me-3"><i class="fa-solid fa-coins text-warning"></i> +<span id="over-coins">0</span></span>
+        <span class="text-info"><i class="fa-solid fa-gem text-cyan"></i> +<span id="over-gems">0</span></span>
+      </div>
+
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-rectangle-ad fa-2x mb-2 text-warning"></i><br>
+          Google AdSense 300x250<br>O'yindan so'ng reklama maydoni
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-reward" id="btn-reward-double">
+          <i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)
+        </button>
+        <button class="btn-cyber btn-cyber-primary" id="btn-gameover-restart">
+          <i class="fa-solid fa-rotate-right"></i> Qayta O'ynash
+        </button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary">
+          <i class="fa-solid fa-house"></i> Bosh Sahifa
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="game-modal" id="modal-shop">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">HANGAR DO'KONI</h2>
+      <p class="text-secondary small">Kosmik kemangiz modelini tanlang</p>
+      
+      <div class="shop-grid" id="shop-items-container"></div>
+
+      <div class="mt-3">
+        <button class="btn-cyber btn-cyber-primary w-100" id="btn-shop-close"><i class="fa-solid fa-check"></i> Jang Maydoniga</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    const Storage = {
+      getCoins: () => parseInt(localStorage.getItem('cg_coins')) || 250,
+      setCoins: (n) => { localStorage.setItem('cg_coins', n); Storage.updateUI(); },
+      addCoins: (n) => Storage.setCoins(Storage.getCoins() + n),
+      getGems: () => parseInt(localStorage.getItem('cg_gems')) || 15,
+      setGems: (n) => { localStorage.setItem('cg_gems', n); Storage.updateUI(); },
+      addGems: (n) => Storage.setGems(Storage.getGems() + n),
+      getShip: () => localStorage.getItem('cg_shooter_ship') || 'falcon',
+      setShip: (s) => localStorage.setItem('cg_shooter_ship', s),
+      getUnlockedShips: () => JSON.parse(localStorage.getItem('cg_shooter_ships') || '["falcon"]'),
+      unlockShip: (s) => {
+        let ships = Storage.getUnlockedShips();
+        if (!ships.includes(s)) ships.push(s);
+        localStorage.setItem('cg_shooter_ships', JSON.stringify(ships));
+      },
+      updateUI: () => {
+        const elC = document.getElementById('ui-coins');
+        const elG = document.getElementById('ui-gems');
+        if (elC) elC.textContent = Storage.getCoins();
+        if (elG) elG.textContent = Storage.getGems();
+      }
+    };
+
+    const Sound = {
+      ctx: null,
+      init: () => {
+        if (!Sound.ctx) Sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (Sound.ctx.state === 'suspended') Sound.ctx.resume();
+      },
+      play: (freq, type, dur, endFreq = null, vol = 0.1) => {
+        try {
+          Sound.init();
+          const osc = Sound.ctx.createOscillator();
+          const gain = Sound.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, Sound.ctx.currentTime);
+          if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, Sound.ctx.currentTime + dur);
+          gain.gain.setValueAtTime(vol, Sound.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, Sound.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(Sound.ctx.destination);
+          osc.start();
+          osc.stop(Sound.ctx.currentTime + dur);
+        } catch(e) {}
+      },
+      laser: () => Sound.play(800, 'sawtooth', 0.12, 180, 0.08),
+      explode: () => Sound.play(100, 'triangle', 0.35, 30, 0.2),
+      coin: () => Sound.play(987, 'sine', 0.15, 1318),
+      gem: () => Sound.play(1318, 'sine', 0.2, 2093),
+      click: () => Sound.play(600, 'triangle', 0.05)
+    };
+
+    let scene, camera, renderer;
+    let playerShip;
+    let score = 0;
+    let isGameOver = false;
+    let isPaused = false;
+    let sessionCoins = 0;
+    let sessionGems = 0;
+
+    let targetX = 0, targetY = 0;
+    const bullets = [];
+    const enemies = [];
+    const items = [];
+    const particles = [];
+    let shootTimer = 0;
+
+    const SHIPS = [
+      { id: 'falcon', name: 'Cyber Falcon', color: 0x00d2ff, price: 0, type: 'coins' },
+      { id: 'phoenix', name: 'Plasma Phoenix', color: 0xff2a5f, price: 200, type: 'coins' },
+      { id: 'phantom', name: 'Void Phantom', color: 0x9d00ff, price: 400, type: 'coins' },
+      { id: 'nebula', name: 'Gold Nebula', color: 0xffd700, price: 8, type: 'gems' }
+    ];
+
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+      camera.position.set(0, 0, 18);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00d2ff, 1.5);
+      dirLight.position.set(5, 10, 15);
+      scene.add(dirLight);
+
+      createStars();
+      createPlayerShip();
+      setupEvents();
+      setupShopUI();
+      Storage.updateUI();
+
+      animate();
+    }
+
+    function createStars() {
+      const starGeo = new THREE.BufferGeometry();
+      const count = 1200;
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        pos[i] = (Math.random() - 0.5) * 150;
+        pos[i + 1] = (Math.random() - 0.5) * 150;
+        pos[i + 2] = -Math.random() * 300;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.8 });
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+    }
+
+    function createPlayerShip() {
+      const activeId = Storage.getShip();
+      const shipData = SHIPS.find(s => s.id === activeId) || SHIPS[0];
+      if (playerShip) scene.remove(playerShip);
+
+      playerShip = new THREE.Group();
+      // Asosiy fyuzelyaj
+      const bodyGeo = new THREE.ConeGeometry(0.8, 3.2, 5);
+      bodyGeo.rotateX(Math.PI / 2);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: shipData.color, metalness: 0.8, roughness: 0.2 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      playerShip.add(body);
+
+      // Qanotlar
+      const wingGeo = new THREE.BoxGeometry(3.6, 0.1, 1.2);
+      const wingMat = new THREE.MeshStandardMaterial({ color: 0x11162b, metalness: 0.6 });
+      const wings = new THREE.Mesh(wingGeo, wingMat);
+      wings.position.set(0, 0, 0.5);
+      playerShip.add(wings);
+
+      // Qanot neon uchlari
+      const tipGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.8);
+      tipGeo.rotateX(Math.PI / 2);
+      const tipMat = new THREE.MeshBasicMaterial({ color: shipData.color });
+      const tipL = new THREE.Mesh(tipGeo, tipMat); tipL.position.set(-1.8, 0, 0.5);
+      const tipR = new THREE.Mesh(tipGeo, tipMat); tipR.position.set(1.8, 0, 0.5);
+      playerShip.add(tipL, tipR);
+
+      // Dvigatel nuri
+      const engineGeo = new THREE.SphereGeometry(0.4, 8, 8);
+      const engineMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+      const engine = new THREE.Mesh(engineGeo, engineMat);
+      engine.position.set(0, 0, 1.7);
+      playerShip.add(engine);
+
+      scene.add(playerShip);
+    }
+
+    function spawnEnemy() {
+      const group = new THREE.Group();
+      const isAsteroid = Math.random() > 0.6;
+
+      if (isAsteroid) {
+        const geo = new THREE.DodecahedronGeometry(1.2 + Math.random() * 0.5);
+        const mat = new THREE.MeshStandardMaterial({ color: 0x776655, roughness: 0.9, wireframe: false });
+        const mesh = new THREE.Mesh(geo, mat);
+        group.add(mesh);
+        group.userData = { type: 'asteroid', hp: 2, rotSpeed: (Math.random() - 0.5) * 0.05 };
+      } else {
+        const geo = new THREE.ConeGeometry(0.9, 2.4, 4);
+        geo.rotateX(-Math.PI / 2);
+        const mat = new THREE.MeshStandardMaterial({ color: 0xff2a5f, emissive: 0xff0044, emissiveIntensity: 0.3 });
+        const mesh = new THREE.Mesh(geo, mat);
+        group.add(mesh);
+        group.userData = { type: 'fighter', hp: 1, rotSpeed: 0 };
+      }
+
+      group.position.set((Math.random() - 0.5) * 22, (Math.random() - 0.5) * 14, -80);
+      scene.add(group);
+      enemies.push(group);
+    }
+
+    function fireBullet() {
+      if (!playerShip) return;
+      Sound.laser();
+      const bulletGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.4);
+      bulletGeo.rotateX(Math.PI / 2);
+      const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+
+      const b1 = new THREE.Mesh(bulletGeo, bulletMat);
+      b1.position.set(playerShip.position.x - 1.2, playerShip.position.y, playerShip.position.z - 1.2);
+      const b2 = new THREE.Mesh(bulletGeo, bulletMat);
+      b2.position.set(playerShip.position.x + 1.2, playerShip.position.y, playerShip.position.z - 1.2);
+
+      scene.add(b1, b2);
+      bullets.push(b1, b2);
+    }
+
+    function createExplosion(pos, color = 0xff8c00) {
+      Sound.explode();
+      for (let i = 0; i < 15; i++) {
+        const pGeo = new THREE.SphereGeometry(0.2, 4, 4);
+        const pMat = new THREE.MeshBasicMaterial({ color: color });
+        const p = new THREE.Mesh(pGeo, pMat);
+        p.position.copy(pos);
+        p.userData = {
+          vel: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.6,
+            (Math.random() - 0.5) * 0.6,
+            (Math.random() - 0.5) * 0.6
+          ),
+          life: 25
+        };
+        scene.add(p);
+        particles.push(p);
+      }
+    }
+
+    function dropLoot(pos) {
+      if (Math.random() < 0.6) {
+        // Tanga
+        const cGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 12);
+        cGeo.rotateX(Math.PI / 2);
+        const cMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.1 });
+        const c = new THREE.Mesh(cGeo, cMat);
+        c.position.copy(pos);
+        c.userData = { type: 'coin' };
+        scene.add(c);
+        items.push(c);
+      } else if (Math.random() < 0.2) {
+        // Olmos
+        const gGeo = new THREE.OctahedronGeometry(0.45);
+        const gMat = new THREE.MeshStandardMaterial({ color: 0x00d2ff, emissive: 0x00d2ff, emissiveIntensity: 0.6 });
+        const g = new THREE.Mesh(gGeo, gMat);
+        g.position.copy(pos);
+        g.userData = { type: 'gem' };
+        scene.add(g);
+        items.push(g);
+      }
+    }
+
+    function setupEvents() {
+      const handleMove = (clientX, clientY) => {
+        const xNorm = (clientX / window.innerWidth) * 2 - 1;
+        const yNorm = -(clientY / window.innerHeight) * 2 + 1;
+        targetX = xNorm * 11;
+        targetY = yNorm * 7;
+      };
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isPaused && !isGameOver) handleMove(e.clientX, e.clientY);
+      });
+      window.addEventListener('touchmove', (e) => {
+        if (!isPaused && !isGameOver && e.touches.length > 0) {
+          handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: false });
+
+      // Keyboard
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'p' || e.key === 'P') togglePause();
+      });
+
+      // Modals
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', togglePause);
+      document.getElementById('btn-pause-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-gameover-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-shop').addEventListener('click', () => { isPaused = true; document.getElementById('modal-shop').style.display = 'flex'; });
+      document.getElementById('btn-shop-close').addEventListener('click', () => { document.getElementById('modal-shop').style.display = 'none'; isPaused = false; createPlayerShip(); });
+
+      document.getElementById('btn-reward-double').addEventListener('click', () => {
+        Sound.click();
+        const btn = document.getElementById('btn-reward-double');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Video yuklanmoqda...';
+        setTimeout(() => {
+          const bonus = sessionCoins;
+          Storage.addCoins(bonus);
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> +${bonus} Tanga qo'shildi!`;
+          Sound.gem();
+        }, 3000);
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function togglePause() {
+      if (isGameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('modal-pause').style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      if (playerShip) createExplosion(playerShip.position, 0xff0044);
+      Storage.addCoins(sessionCoins);
+      Storage.addGems(sessionGems);
+
+      document.getElementById('over-score').textContent = score;
+      document.getElementById('over-coins').textContent = sessionCoins;
+      document.getElementById('over-gems').textContent = sessionGems;
+      document.getElementById('modal-gameover').style.display = 'flex';
+    }
+
+    function restartGame() {
+      isGameOver = false;
+      isPaused = false;
+      score = 0;
+      sessionCoins = 0;
+      sessionGems = 0;
+      document.getElementById('ui-score').textContent = '0';
+      document.getElementById('modal-gameover').style.display = 'none';
+      document.getElementById('modal-pause').style.display = 'none';
+
+      bullets.forEach(b => scene.remove(b));
+      enemies.forEach(e => scene.remove(e));
+      items.forEach(i => scene.remove(i));
+      particles.forEach(p => scene.remove(p));
+      bullets.length = 0;
+      enemies.length = 0;
+      items.length = 0;
+      particles.length = 0;
+
+      if (playerShip) playerShip.position.set(0, 0, 0);
+      const rBtn = document.getElementById('btn-reward-double');
+      rBtn.disabled = false;
+      rBtn.innerHTML = '<i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)';
+    }
+
+    function setupShopUI() {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      const unlocked = Storage.getUnlockedShips();
+      const current = Storage.getShip();
+
+      SHIPS.forEach(ship => {
+        const isBought = unlocked.includes(ship.id);
+        const isActive = current === ship.id;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="preview-box" style="color: #${ship.color.toString(16).padStart(6, '0')};">
+            <i class="fa-solid fa-jet-fighter-up"></i>
+          </div>
+          <div class="fw-bold small">${ship.name}</div>
+          <div class="small text-muted mb-2">
+            ${isBought ? (isActive ? 'Faol' : 'Olingan') : (ship.type === 'coins' ? `${ship.price} <i class="fa-solid fa-coins text-warning"></i>` : `${ship.price} <i class="fa-solid fa-gem text-info"></i>`)}
+          </div>
+          <button class="btn btn-sm w-100 ${isActive ? 'btn-outline-info' : 'btn-primary'}" ${isActive ? 'disabled' : ''}>
+            ${isActive ? 'Tanlangan' : (isBought ? 'Tanlash' : 'Olish')}
+          </button>
+        `;
+
+        card.querySelector('button').addEventListener('click', () => {
+          if (isBought) {
+            Storage.setShip(ship.id);
+            setupShopUI();
+          } else {
+            if (ship.type === 'coins' && Storage.getCoins() >= ship.price) {
+              Storage.addCoins(-ship.price);
+              Storage.unlockShip(ship.id);
+              Storage.setShip(ship.id);
+              Sound.gem();
+              setupShopUI();
+            } else if (ship.type === 'gems' && Storage.getGems() >= ship.price) {
+              Storage.addGems(-ship.price);
+              Storage.unlockShip(ship.id);
+              Storage.setShip(ship.id);
+              Sound.gem();
+              setupShopUI();
+            } else {
+              alert('Mablag\' yetarli emas!');
+            }
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    let enemySpawnCounter = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isPaused || isGameOver) return;
+
+      // Kema harakati
+      playerShip.position.x += (targetX - playerShip.position.x) * 0.12;
+      playerShip.position.y += (targetY - playerShip.position.y) * 0.12;
+      playerShip.rotation.z = -(targetX - playerShip.position.x) * 0.08;
+      playerShip.rotation.x = (targetY - playerShip.position.y) * 0.05;
+
+      // Avtomatik otishma
+      shootTimer++;
+      if (shootTimer % 14 === 0) {
+        fireBullet();
+      }
+
+      // O'qlar harakati
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.position.z -= 1.8;
+        if (b.position.z < -90) {
+          scene.remove(b);
+          bullets.splice(i, 1);
+        }
+      }
+
+      // Dushmanlar paydo bo'lishi
+      enemySpawnCounter++;
+      if (enemySpawnCounter % 40 === 0) {
+        spawnEnemy();
+      }
+
+      // Dushmanlar harakati va to'qnashuv
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const en = enemies[i];
+        en.position.z += 0.8;
+        if (en.userData.rotSpeed) en.rotation.y += en.userData.rotSpeed;
+
+        // O'yinchi bilan to'qnashuv
+        if (playerShip.position.distanceTo(en.position) < 2.0) {
+          triggerGameOver();
+          return;
+        }
+
+        // O'qlar bilan urilish
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          if (b.position.distanceTo(en.position) < 1.8) {
+            scene.remove(b);
+            bullets.splice(j, 1);
+
+            en.userData.hp--;
+            if (en.userData.hp <= 0) {
+              createExplosion(en.position);
+              dropLoot(en.position);
+              scene.remove(en);
+              enemies.splice(i, 1);
+              score += 10;
+              document.getElementById('ui-score').textContent = score;
+              break;
+            }
+          }
+        }
+
+        if (en.position.z > 20) {
+          scene.remove(en);
+          enemies.splice(i, 1);
+        }
+      }
+
+      // Tanga va olmoslar
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.position.z += 0.5;
+        it.rotation.y += 0.05;
+
+        if (playerShip.position.distanceTo(it.position) < 2.0) {
+          if (it.userData.type === 'coin') {
+            Sound.coin();
+            sessionCoins += 5;
+            document.getElementById('ui-coins').textContent = Storage.getCoins() + sessionCoins;
+          } else {
+            Sound.gem();
+            sessionGems += 1;
+            document.getElementById('ui-gems').textContent = Storage.getGems() + sessionGems;
+          }
+          scene.remove(it);
+          items.splice(i, 1);
+        } else if (it.position.z > 20) {
+          scene.remove(it);
+          items.splice(i, 1);
+        }
+      }
+
+      // Zarrachalar (Portlashlar)
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.position.add(p.userData.vel);
+        p.userData.life--;
+        if (p.userData.life <= 0) {
+          scene.remove(p);
+          particles.splice(i, 1);
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.onload = initThree;
+  </script>
+</body>
+</html>

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>3D Gravity Basketball | CyberGames</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --neon-orange: #ff6600;
+      --neon-cyan: #00f3ff;
+      --dark-bg: #070914;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: var(--dark-bg); font-family: 'Segoe UI', sans-serif; color: #fff; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; }
+
+    .hud {
+      position: absolute; top: 15px; left: 0; width: 100%; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px; pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(10, 16, 28, 0.85);
+      border: 1px solid var(--neon-orange);
+      box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
+      padding: 8px 16px; border-radius: 20px;
+      font-weight: bold; font-size: 14px;
+      backdrop-filter: blur(5px);
+      display: flex; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    .btn-hud {
+      background: rgba(255, 102, 0, 0.2); border: 1px solid var(--neon-orange);
+      color: #fff; border-radius: 50%; width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: 0.2s; pointer-events: auto;
+    }
+    .btn-hud:hover { background: var(--neon-orange); color: #000; box-shadow: 0 0 15px var(--neon-orange); }
+
+    .aim-guide {
+      position: absolute; bottom: 35px; width: 100%; text-align: center;
+      font-size: 14px; color: #889; z-index: 10; pointer-events: none;
+    }
+
+    .game-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(4, 7, 15, 0.9); z-index: 100;
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      backdrop-filter: blur(8px); padding: 15px;
+    }
+    .modal-content-cyber {
+      background: linear-gradient(145deg, #18120d, #060914);
+      border: 2px solid var(--neon-orange);
+      box-shadow: 0 0 25px rgba(255, 102, 0, 0.4);
+      border-radius: 16px; padding: 25px; max-width: 440px; width: 100%;
+      text-align: center;
+    }
+    .modal-title-cyber {
+      font-size: 26px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 15px;
+      background: linear-gradient(90deg, var(--neon-orange), var(--neon-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .ad-container-300x250 {
+      width: 300px; height: 250px; margin: 15px auto;
+      background: #02040a; border: 1px dashed #445;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .ad-badge {
+      position: absolute; top: 4px; right: 6px; font-size: 9px;
+      color: #889; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .ad-placeholder-text { color: #556; font-size: 12px; text-align: center; }
+
+    .modal-actions-area {
+      margin-top: 30px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .btn-cyber {
+      padding: 12px 20px; font-weight: bold; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+      border: none; transition: 0.2s; font-size: 15px; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-cyber-primary {
+      background: linear-gradient(90deg, #ff6600, #ffaa00); color: #000;
+      box-shadow: 0 0 15px rgba(255, 102, 0, 0.5);
+    }
+    .btn-cyber-reward {
+      background: linear-gradient(90deg, #ffd700, #ff8c00); color: #000;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    .btn-cyber-secondary {
+      background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid #445;
+    }
+
+    .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; max-height: 220px; overflow-y: auto; }
+    .shop-card {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid #334;
+      border-radius: 10px; padding: 10px; cursor: pointer;
+    }
+    .shop-card.active { border-color: var(--neon-orange); box-shadow: 0 0 10px var(--neon-orange); }
+    .preview-box { height: 50px; border-radius: 50%; width: 50px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div class="aim-guide"><i class="fa-solid fa-arrow-up-long"></i> To'pni savatga qarab tez yuqoriga torting (Swipe / Flick)!</div>
+
+  <div class="hud">
+    <div class="hud-box">
+      <a href="../../index.html" class="text-white text-decoration-none me-2"><i class="fa-solid fa-house"></i></a>
+      <span class="text-warning"><i class="fa-solid fa-basketball"></i> Ball: <span id="ui-score">0</span></span>
+      <span class="text-white ms-2"><i class="fa-solid fa-stopwatch"></i> Vaqt: <span id="ui-time">45</span>s</span>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="hud-box">
+        <span class="text-warning"><i class="fa-solid fa-coins"></i> <span id="ui-coins">0</span></span>
+        <span class="text-info ms-2"><i class="fa-solid fa-gem"></i> <span id="ui-gems">0</span></span>
+      </div>
+      <button class="btn-hud" id="btn-shop" title="To'p Do'koni"><i class="fa-solid fa-basketball"></i></button>
+      <button class="btn-hud" id="btn-pause" title="Pauza"><i class="fa-solid fa-pause"></i></button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="game-modal" id="modal-pause">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">TO'XTATILDI</h2>
+      <p class="text-secondary small">3D Gravity Basketball</p>
+      
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-basketball fa-2x mb-2 text-muted"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-primary" id="btn-resume"><i class="fa-solid fa-play"></i> Davom ettirish</button>
+        <button class="btn-cyber btn-cyber-secondary" id="btn-pause-restart"><i class="fa-solid fa-rotate-right"></i> Qayta boshlash</button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary"><i class="fa-solid fa-home"></i> Bosh sahifa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="game-modal" id="modal-gameover">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber text-warning">VAQT TUGADI!</h2>
+      <div class="mb-2">
+        <span class="fs-5 text-light">To'plangan Ball: <strong id="over-score" class="text-warning">0</strong></span>
+      </div>
+      <div class="mb-3">
+        <span class="text-info me-3"><i class="fa-solid fa-coins text-warning"></i> +<span id="over-coins">0</span></span>
+        <span class="text-info"><i class="fa-solid fa-gem text-cyan"></i> +<span id="over-gems">0</span></span>
+      </div>
+
+      <div class="ad-container-300x250">
+        <div class="ad-badge">ADVERTISEMENT</div>
+        <div class="ad-placeholder-text">
+          <i class="fa-solid fa-rectangle-ad fa-2x mb-2 text-warning"></i><br>
+          Google AdSense 300x250
+        </div>
+      </div>
+
+      <div class="modal-actions-area">
+        <button class="btn-cyber btn-cyber-reward" id="btn-reward-double">
+          <i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)
+        </button>
+        <button class="btn-cyber btn-cyber-primary" id="btn-gameover-restart">
+          <i class="fa-solid fa-rotate-right"></i> Qayta O'ynash
+        </button>
+        <a href="../../index.html" class="btn-cyber btn-cyber-secondary">
+          <i class="fa-solid fa-house"></i> Bosh Sahifa
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="game-modal" id="modal-shop">
+    <div class="modal-content-cyber">
+      <h2 class="modal-title-cyber">TO'P DO'KONI</h2>
+      <p class="text-secondary small">Kiber basketbol to'pini tanlang</p>
+      <div class="shop-grid" id="shop-items-container"></div>
+      <div class="mt-3">
+        <button class="btn-cyber btn-cyber-primary w-100" id="btn-shop-close"><i class="fa-solid fa-check"></i> Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const Storage = {
+      getCoins: () => parseInt(localStorage.getItem('cg_coins')) || 250,
+      setCoins: (n) => { localStorage.setItem('cg_coins', n); Storage.updateUI(); },
+      addCoins: (n) => Storage.setCoins(Storage.getCoins() + n),
+      getGems: () => parseInt(localStorage.getItem('cg_gems')) || 15,
+      setGems: (n) => { localStorage.setItem('cg_gems', n); Storage.updateUI(); },
+      addGems: (n) => Storage.setGems(Storage.getGems() + n),
+      getBall: () => localStorage.getItem('cg_bball_skin') || 'orange',
+      setBall: (s) => localStorage.setItem('cg_bball_skin', s),
+      getUnlocked: () => JSON.parse(localStorage.getItem('cg_bball_skins') || '["orange"]'),
+      unlock: (s) => {
+        let list = Storage.getUnlocked();
+        if (!list.includes(s)) list.push(s);
+        localStorage.setItem('cg_bball_skins', JSON.stringify(list));
+      },
+      updateUI: () => {
+        const elC = document.getElementById('ui-coins');
+        const elG = document.getElementById('ui-gems');
+        if (elC) elC.textContent = Storage.getCoins();
+        if (elG) elG.textContent = Storage.getGems();
+      }
+    };
+
+    const Sound = {
+      ctx: null,
+      init: () => {
+        if (!Sound.ctx) Sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (Sound.ctx.state === 'suspended') Sound.ctx.resume();
+      },
+      play: (freq, type, dur, endFreq = null, vol = 0.1) => {
+        try {
+          Sound.init();
+          const osc = Sound.ctx.createOscillator();
+          const gain = Sound.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, Sound.ctx.currentTime);
+          if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, Sound.ctx.currentTime + dur);
+          gain.gain.setValueAtTime(vol, Sound.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, Sound.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(Sound.ctx.destination);
+          osc.start();
+          osc.stop(Sound.ctx.currentTime + dur);
+        } catch(e) {}
+      },
+      throw: () => Sound.play(300, 'sine', 0.12, 100),
+      swish: () => Sound.play(800, 'sine', 0.25, 1200, 0.2),
+      rim: () => Sound.play(250, 'triangle', 0.1, 150),
+      coin: () => Sound.play(987, 'sine', 0.15, 1318),
+      gem: () => Sound.play(1318, 'sine', 0.2, 2093),
+      click: () => Sound.play(600, 'triangle', 0.05)
+    };
+
+    let scene, camera, renderer;
+    let ballMesh;
+    let score = 0, timeLeft = 45, sessionCoins = 0, sessionGems = 0;
+    let isGameOver = false, isPaused = false;
+
+    // To'p holati
+    const spawnPos = new THREE.Vector3(0, -1.2, 5.5);
+    let ballPos = spawnPos.clone();
+    let ballVel = new THREE.Vector3(0, 0, 0);
+    let isFlying = false;
+    let scoredThisShot = false;
+
+    // Savat koordinatasi
+    const hoopPos = new THREE.Vector3(0, 3.2, -7.5);
+    const hoopRadius = 1.3;
+
+    // Swipe
+    let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+
+    const BALLS = [
+      { id: 'orange', name: 'Cyber Magma', color: 0xff6600, price: 0, type: 'coins' },
+      { id: 'cyan', name: 'Electro Blue', color: 0x00f3ff, price: 200, type: 'coins' },
+      { id: 'neon', name: 'Matrix Green', color: 0x00ff88, price: 350, type: 'coins' },
+      { id: 'gold', name: 'Golden Champion', color: 0xffd700, price: 8, type: 'gems' }
+    ];
+
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x070914, 0.015);
+
+      camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 150);
+      camera.position.set(0, 1.8, 9.5);
+      camera.lookAt(0, 2.5, -4);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight.position.set(5, 15, 10);
+      scene.add(dirLight);
+
+      buildCourt();
+      buildHoop();
+      createBall();
+      setupEvents();
+      setupShopUI();
+      Storage.updateUI();
+
+      startTimer();
+      animate();
+    }
+
+    function buildCourt() {
+      // Pol
+      const floorGeo = new THREE.PlaneGeometry(30, 40);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x0c1222, roughness: 0.5 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -2.5;
+      scene.add(floor);
+
+      // Neon chiziqlar
+      const grid = new THREE.GridHelper(30, 15, 0x00f3ff, 0x112244);
+      grid.position.y = -2.48;
+      scene.add(grid);
+    }
+
+    function buildHoop() {
+      const hoopGroup = new THREE.Group();
+
+      // Shchit (Backboard)
+      const boardGeo = new THREE.BoxGeometry(4.2, 2.8, 0.2);
+      const boardMat = new THREE.MeshStandardMaterial({ color: 0x111e38, metalness: 0.8, roughness: 0.2 });
+      const board = new THREE.Mesh(boardGeo, boardMat);
+      board.position.set(0, 4.2, -8.6);
+      hoopGroup.add(board);
+
+      // Shchit neon ramkasi
+      const borderMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const borderL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.8, 0.22), borderMat);
+      borderL.position.set(-2.1, 4.2, -8.6);
+      const borderR = borderL.clone(); borderR.position.x = 2.1;
+      hoopGroup.add(borderL, borderR);
+
+      // Savat halqasi (Ring)
+      const ringGeo = new THREE.TorusGeometry(hoopRadius, 0.08, 12, 32);
+      ringGeo.rotateX(Math.PI / 2);
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff4400, emissiveIntensity: 0.8 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.copy(hoopPos);
+      hoopGroup.add(ring);
+
+      // To'r (Net)
+      const netGeo = new THREE.CylinderGeometry(hoopRadius, hoopRadius * 0.65, 1.4, 16, 1, true);
+      const netMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.6 });
+      const net = new THREE.Mesh(netGeo, netMat);
+      net.position.set(hoopPos.x, hoopPos.y - 0.7, hoopPos.z);
+      hoopGroup.add(net);
+
+      scene.add(hoopGroup);
+    }
+
+    function createBall() {
+      const ballId = Storage.getBall();
+      const bData = BALLS.find(b => b.id === ballId) || BALLS[0];
+      if (ballMesh) scene.remove(ballMesh);
+
+      const geo = new THREE.SphereGeometry(0.65, 24, 24);
+      const mat = new THREE.MeshStandardMaterial({
+        color: bData.color,
+        roughness: 0.3,
+        emissive: bData.color,
+        emissiveIntensity: 0.3
+      });
+      ballMesh = new THREE.Mesh(geo, mat);
+      ballMesh.position.copy(spawnPos);
+      scene.add(ballMesh);
+    }
+
+    function resetBall() {
+      ballPos.copy(spawnPos);
+      ballVel.set(0, 0, 0);
+      isFlying = false;
+      scoredThisShot = false;
+      ballMesh.position.copy(ballPos);
+    }
+
+    function launchBall(deltaX, deltaY, duration) {
+      if (isFlying || isGameOver || isPaused) return;
+      isFlying = true;
+      Sound.throw();
+
+      const speedFactor = Math.min(Math.max(120 / duration, 1.0), 2.2);
+      ballVel.x = (deltaX * 0.02) * speedFactor;
+      ballVel.y = Math.abs(deltaY * 0.038) * speedFactor + 8;
+      ballVel.z = -22 * speedFactor;
+    }
+
+    function setupEvents() {
+      const container = document.getElementById('canvas-container');
+
+      const onStart = (x, y) => {
+        touchStartX = x;
+        touchStartY = y;
+        touchStartTime = Date.now();
+      };
+
+      const onEnd = (x, y) => {
+        const dx = x - touchStartX;
+        const dy = y - touchStartY;
+        const dt = Math.max(Date.now() - touchStartTime, 50);
+        if (dy < -40) {
+          launchBall(dx, dy, dt);
+        }
+      };
+
+      container.addEventListener('pointerdown', (e) => onStart(e.clientX, e.clientY));
+      container.addEventListener('pointerup', (e) => onEnd(e.clientX, e.clientY));
+
+      // Modals
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', togglePause);
+      document.getElementById('btn-pause-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-gameover-restart').addEventListener('click', restartGame);
+      document.getElementById('btn-shop').addEventListener('click', () => { isPaused = true; document.getElementById('modal-shop').style.display = 'flex'; });
+      document.getElementById('btn-shop-close').addEventListener('click', () => { document.getElementById('modal-shop').style.display = 'none'; isPaused = false; createBall(); });
+
+      document.getElementById('btn-reward-double').addEventListener('click', () => {
+        Sound.click();
+        const btn = document.getElementById('btn-reward-double');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Video yuklanmoqda...';
+        setTimeout(() => {
+          const bonus = sessionCoins;
+          Storage.addCoins(bonus);
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> +${bonus} Tanga olindi!`;
+          Sound.gem();
+        }, 3000);
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function startTimer() {
+      setInterval(() => {
+        if (!isPaused && !isGameOver && timeLeft > 0) {
+          timeLeft--;
+          document.getElementById('ui-time').textContent = timeLeft;
+          if (timeLeft <= 0) triggerGameOver();
+        }
+      }, 1000);
+    }
+
+    function togglePause() {
+      if (isGameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('modal-pause').style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      Storage.addCoins(sessionCoins);
+      Storage.addGems(sessionGems);
+
+      document.getElementById('over-score').textContent = score;
+      document.getElementById('over-coins').textContent = sessionCoins;
+      document.getElementById('over-gems').textContent = sessionGems;
+      document.getElementById('modal-gameover').style.display = 'flex';
+    }
+
+    function restartGame() {
+      isGameOver = false;
+      isPaused = false;
+      score = 0;
+      timeLeft = 45;
+      sessionCoins = 0;
+      sessionGems = 0;
+      resetBall();
+
+      document.getElementById('ui-score').textContent = '0';
+      document.getElementById('ui-time').textContent = '45';
+      document.getElementById('modal-gameover').style.display = 'none';
+      document.getElementById('modal-pause').style.display = 'none';
+
+      const rBtn = document.getElementById('btn-reward-double');
+      rBtn.disabled = false;
+      rBtn.innerHTML = '<i class="fa-solid fa-film"></i> 2X Tanga Olish (Reklama)';
+    }
+
+    function setupShopUI() {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      const unlocked = Storage.getUnlocked();
+      const current = Storage.getBall();
+
+      BALLS.forEach(b => {
+        const isBought = unlocked.includes(b.id);
+        const isActive = current === b.id;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="preview-box" style="background: #${b.color.toString(16).padStart(6, '0')};">
+            <i class="fa-solid fa-basketball text-dark"></i>
+          </div>
+          <div class="fw-bold small">${b.name}</div>
+          <div class="small text-muted mb-2">
+            ${isBought ? (isActive ? 'Faol' : 'Olingan') : (b.type === 'coins' ? `${b.price} <i class="fa-solid fa-coins text-warning"></i>` : `${b.price} <i class="fa-solid fa-gem text-info"></i>`)}
+          </div>
+          <button class="btn btn-sm w-100 ${isActive ? 'btn-outline-info' : 'btn-warning'}" ${isActive ? 'disabled' : ''}>
+            ${isActive ? 'Tanlangan' : (isBought ? 'Tanlash' : 'Olish')}
+          </button>
+        `;
+
+        card.querySelector('button').addEventListener('click', () => {
+          if (isBought) {
+            Storage.setBall(b.id);
+            setupShopUI();
+          } else {
+            if (b.type === 'coins' && Storage.getCoins() >= b.price) {
+              Storage.addCoins(-b.price);
+              Storage.unlock(b.id);
+              Storage.setBall(b.id);
+              Sound.gem();
+              setupShopUI();
+            } else if (b.type === 'gems' && Storage.getGems() >= b.price) {
+              Storage.addGems(-b.price);
+              Storage.unlock(b.id);
+              Storage.setBall(b.id);
+              Sound.gem();
+              setupShopUI();
+            } else {
+              alert('Mablag\' yetarli emas!');
+            }
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isPaused || isGameOver) return;
+
+      const delta = Math.min(clock.getDelta(), 0.05);
+
+      if (isFlying) {
+        ballVel.y -= 25 * delta; // Gravitatsiya
+        ballPos.x += ballVel.x * delta;
+        ballPos.y += ballVel.y * delta;
+        ballPos.z += ballVel.z * delta;
+
+        ballMesh.rotation.x += 0.15;
+        ballMesh.rotation.y += 0.08;
+
+        // Shchit bilan to'qnashuv
+        if (ballPos.z <= -8.2 && ballPos.y >= 2.8 && ballPos.y <= 5.6 && Math.abs(ballPos.x) <= 2.1) {
+          ballVel.z = Math.abs(ballVel.z) * 0.45;
+          Sound.rim();
+        }
+
+        // Halqaga tushish (Basket!)
+        const distToHoop = Math.sqrt(Math.pow(ballPos.x - hoopPos.x, 2) + Math.pow(ballPos.z - hoopPos.z, 2));
+        if (!scoredThisShot && distToHoop < hoopRadius && Math.abs(ballPos.y - hoopPos.y) < 0.6 && ballVel.y < 0) {
+          scoredThisShot = true;
+          Sound.swish();
+          score += 2;
+          sessionCoins += 4;
+          document.getElementById('ui-score').textContent = score;
+          document.getElementById('ui-coins').textContent = Storage.getCoins() + sessionCoins;
+
+          if (score % 6 === 0) {
+            sessionGems += 1;
+            document.getElementById('ui-gems').textContent = Storage.getGems() + sessionGems;
+          }
+        }
+
+        // Yerga tushish yoki maydondan chiqib ketish
+        if (ballPos.y < -2.0 || ballPos.z < -14) {
+          setTimeout(resetBall, 350);
+        }
+
+        ballMesh.position.copy(ballPos);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.onload = initThree;
+  </script>
+</body>
+</html>
