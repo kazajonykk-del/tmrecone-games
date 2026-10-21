@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberGames 3D | Bepul Brauzer 3D O'yinlar Portali</title>
+  <meta name="description" content="CyberGames - HTML5, Three.js va WebGL texnologiyalariga asoslangan eng sara 10 ta bepul 3D o'yinlar portali. Poyga, otishma, labirint va boshqotirma o'yinlarini o'ynang.">
+  <link rel="canonical" href="https://yourdomain.com/">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --cyber-bg: #070a14;
+      --cyber-surface: #0e1326;
+      --cyber-surface-hover: #151d3b;
+      --neon-cyan: #00f3ff;
+      --neon-magenta: #ff007f;
+      --neon-purple: #9d00ff;
+      --neon-gold: #ffd700;
+      --neon-green: #00ff88;
+      --text-muted: #8b9bb4;
+    }
+
+    body {
+      background-color: var(--cyber-bg);
+      color: #e2e8f0;
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(0, 243, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 60%, rgba(255, 0, 127, 0.06) 0%, transparent 45%),
+        linear-gradient(rgba(7, 10, 20, 0.95), rgba(7, 10, 20, 0.95)),
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0, 243, 255, 0.02) 40px, rgba(0, 243, 255, 0.02) 41px);
+    }
+
+    h1, h2, h3, h4, .brand-font {
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1.5px;
+    }
+
+    /* Navbar */
+    .cyber-nav {
+      background: rgba(14, 19, 38, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .brand-logo {
+      font-size: 24px;
+      font-weight: 900;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+    }
+
+    .badge-resource {
+      background: rgba(7, 10, 20, 0.8);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 15px;
+      box-shadow: inset 0 0 8px rgba(0, 243, 255, 0.15);
+    }
+
+    .btn-cyber-reward {
+      background: linear-gradient(90deg, #ffd700, #ff8c00);
+      color: #000;
+      font-weight: 800;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 18px;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+      transition: all 0.25s;
+    }
+    .btn-cyber-reward:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 22px rgba(255, 215, 0, 0.7);
+      color: #000;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      padding: 50px 0 30px;
+      text-align: center;
+    }
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      background: linear-gradient(90deg, #fff, var(--neon-cyan), var(--neon-magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    /* Game Card */
+    .game-card {
+      background: var(--cyber-surface);
+      border: 1px solid rgba(0, 243, 255, 0.15);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .game-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 10px 25px rgba(0, 243, 255, 0.25);
+    }
+
+    .poster-container {
+      height: 170px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: radial-gradient(circle, #192347 0%, #0b0f21 100%);
+    }
+    .poster-icon {
+      font-size: 65px;
+      transition: transform 0.4s ease;
+      filter: drop-shadow(0 0 12px currentColor);
+    }
+    .game-card:hover .poster-icon {
+      transform: scale(1.15) rotate(4deg);
+    }
+
+    .badge-tag {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: rgba(7, 10, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-body-cyber {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+
+    .game-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .game-desc {
+      color: var(--text-muted);
+      font-size: 13.5px;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    .btn-play-game {
+      background: linear-gradient(90deg, var(--neon-cyan), #0077ff);
+      color: #000;
+      font-weight: 800;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 0;
+      width: 100%;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      transition: 0.2s;
+      text-decoration: none;
+      display: block;
+    }
+    .btn-play-game:hover {
+      background: linear-gradient(90deg, #33f6ff, #1a88ff);
+      box-shadow: 0 0 18px rgba(0, 243, 255, 0.6);
+      color: #000;
+    }
+
+    /* Ad Banner Slot */
+    .ad-placeholder-home {
+      background: rgba(14, 19, 38, 0.7);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin: 40px auto;
+      max-width: 970px;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .ad-badge-top {
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      font-size: 9px;
+      color: #718096;
+      letter-spacing: 1px;
+    }
+
+    /* Footer */
+    .cyber-footer {
+      background: #04060d;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 45px 0 25px;
+      margin-top: 60px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin: 0 12px;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover {
+      color: var(--neon-cyan);
+    }
+
+    /* Daily Modal */
+    .game-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(3, 5, 12, 0.9); z-index: 1050;
+      display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(8px); padding: 15px;
+    }
+    .modal-box {
+      background: linear-gradient(145deg, #10162e, #070a16);
+      border: 2px solid var(--neon-gold);
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.35);
+      border-radius: 16px; padding: 30px; max-width: 440px; width: 100%;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header / Navbar -->
+  <nav class="navbar navbar-expand-lg cyber-nav sticky-top">
+    <div class="container">
+      <a class="navbar-brand brand-font brand-logo d-flex align-items-center gap-2" href="index.html">
+        <i class="fa-solid fa-gamepad text-info"></i> CyberGames
+      </a>
+      
+      <div class="d-flex align-items-center gap-3 ms-auto">
+        <!-- Tanga va Olmos Balansi -->
+        <div class="d-flex gap-2">
+          <div class="badge-resource text-warning">
+            <i class="fa-solid fa-coins"></i> <span id="top-coins">0</span>
+          </div>
+          <div class="badge-resource text-info">
+            <i class="fa-solid fa-gem"></i> <span id="top-gems">0</span>
+          </div>
+        </div>
+
+        <!-- Kunlik mukofot tugmasi -->
+        <button class="btn-cyber-reward" id="btn-open-daily">
+          <i class="fa-solid fa-gift"></i> <span class="d-none d-sm-inline">Kunlik</span> Bonus
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Bo'limi -->
+  <header class="hero-banner">
+    <div class="container">
+      <h1 class="hero-title">3D KIBER O'YINLAR OLAMI</h1>
+      <p class="text-secondary lead mx-auto" style="max-width: 650px;">
+        Yuklab olish talab qilinmaydi. Brauzeringizda Three.js texnologiyasiga asoslangan eng qiziqarli 10 ta 3D o'yinni mutlaqo bepul o'ynang!
+      </p>
+    </div>
+  </header>
+
+  <!-- Google AdSense Bosh Sahifa Banner Maydoni -->
+  <div class="container">
+    <div class="ad-placeholder-home">
+      <span class="ad-badge-top">ADVERTISEMENT</span>
+      <div class="text-muted small">
+        <i class="fa-solid fa-rectangle-ad fa-2x mb-1 text-secondary"></i><br>
+        Google AdSense Responsive Leaderboard Banner (728x90 / Auto-Ads)
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 ta O'yin Kartochkalari Tarmog'i -->
+  <main class="container my-4">
+    <div class="row g-4">
+      
+      <!-- 1. Neon Highway Racer -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-info border-info">Poyga</span>
+            <i class="fa-solid fa-car-on poster-icon text-info"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">Neon Highway Racer</h3>
+              <p class="game-desc">Kiber magistralda yuqori tezlikda boshqa transportlardan qoching va tangalar yig'ing.</p>
+            </div>
+            <a href="games/neon-racer/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Space Galaxy Shooter -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-danger border-danger">Otishma</span>
+            <i class="fa-solid fa-jet-fighter-up poster-icon text-danger"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">Space Galaxy Shooter</h3>
+              <p class="game-desc">Kosmik kemangiz bilan dushman asteroidlari va yot sayyoraliklarni urib tushiring.</p>
+            </div>
+            <a href="games/galaxy-shooter/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Endless Tower Parkour -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-success border-success">Parkur</span>
+            <i class="fa-solid fa-stairs poster-icon text-success"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">Endless Tower Parkour</h3>
+              <p class="game-desc">Spiral minora bo'ylab yuqoriga sakrab chiqing va xavfli lazer platformalardan saqlaning.</p>
+            </div>
+            <a href="games/tower-parkour/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Cyber Ball Balance -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-warning border-warning">Fizika</span>
+            <i class="fa-solid fa-circle-dot poster-icon text-warning"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">Cyber Ball Balance</h3>
+              <p class="game-desc">Havodagi tor kiber labirint yo'llarida to'pni pastga tushib ketmasdan muvozanatda haydang.</p>
+            </div>
+            <a href="games/ball-balance/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. 3D Archery Master -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-danger border-danger">Mergonlik</span>
+            <i class="fa-solid fa-bullseye poster-icon text-danger"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">3D Archery Master</h3>
+              <p class="game-desc">Lazer kamondan harakatlanuvchi neon nishon markaziga aniq zarba bering.</p>
+            </div>
+            <a href="games/archery-master/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. 3D Snake & Blocks -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-success border-success">Arkada</span>
+            <i class="fa-solid fa-worm poster-icon text-success"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">3D Snake & Blocks</h3>
+              <p class="game-desc">Ilon tanasini ozuqalar bilan o'stiring va raqamlangan kub to'siqlarni yorib o'ting.</p>
+            </div>
+            <a href="games/snake-blocks/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. 3D Cube Match 2048 -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-info border-info">Mantiq</span>
+            <i class="fa-solid fa-cubes poster-icon text-info"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">3D Cube Match 2048</h3>
+              <p class="game-desc">Fizikali raqamli 3D kublarni bir-biriga otib birlashtiring va 2048 rekordini yangilang.</p>
+            </div>
+            <a href="games/cube-match-2048/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. 3D Gravity Basketball -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-warning border-warning">Sport</span>
+            <i class="fa-solid fa-basketball poster-icon text-warning"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">Gravity Basketball</h3>
+              <p class="game-desc">Ajratilgan vaqt ichida to'pni aniq hisob-kitob bilan savat halqasiga tashlang.</p>
+            </div>
+            <a href="games/gravity-basketball/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. 3D Knife Hit Master -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-danger border-danger">Epshilik</span>
+            <i class="fa-solid fa-khanda poster-icon text-danger"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">Knife Hit Master</h3>
+              <p class="game-desc">Aylanayotgan kiber diskka pichoqlarni birin-ketin qadang, bir-biriga tegmang!</p>
+            </div>
+            <a href="games/knife-hit/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. 3D Pixel Dungeon Escape -->
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="game-card">
+          <div class="poster-container">
+            <span class="badge-tag text-primary border-primary">Sarguzasht</span>
+            <i class="fa-solid fa-dungeon poster-icon text-primary"></i>
+          </div>
+          <div class="card-body-cyber">
+            <div>
+              <h3 class="game-title">Pixel Dungeon Escape</h3>
+              <p class="game-desc">Labirintda kiber qorovullardan qoching, maxfiy kalitni toping va portalga chiqing.</p>
+            </div>
+            <a href="games/dungeon-escape/index.html" class="btn-play-game">
+              <i class="fa-solid fa-play me-1"></i> O'ynash
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Daily Reward Modal -->
+  <div class="game-modal" id="home-daily-modal">
+    <div class="modal-box">
+      <h2 class="brand-font text-warning mb-2"><i class="fa-solid fa-gift"></i> KUNLIK MUKOFOT</h2>
+      <p class="text-secondary small">Har kuni portalga kiring va barcha o'yinlarda ishlatiladigan resurslarga ega bo'ling!</p>
+      
+      <div class="my-4 p-3 rounded" style="background: rgba(255,255,255,0.05); border: 1px solid var(--neon-gold);">
+        <h3 class="text-warning mb-1"><i class="fa-solid fa-coins"></i> +150 Tangalar</h3>
+        <h4 class="text-info"><i class="fa-solid fa-gem"></i> +5 Olmoslar</h4>
+      </div>
+
+      <div class="d-flex flex-column gap-2">
+        <button class="btn btn-warning fw-bold py-2" id="btn-claim-today"><i class="fa-solid fa-check"></i> Bonusni Qabul Qilish</button>
+        <button class="btn btn-outline-secondary py-2" id="btn-close-daily">Yopish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer (AdSense talab qiladigan havolalar bilan) -->
+  <footer class="cyber-footer">
+    <div class="container text-center">
+      <div class="brand-font brand-logo mb-3">CyberGames 3D</div>
+      <p class="text-secondary small mx-auto" style="max-width: 600px;">
+        Barcha huquqlar himoyalangan &copy; 2026 CyberGames Portali. Saytdagi 3D o'yinlar Three.js va HTML5 Canvas orqali ishlaydi.
+      </p>
+
+      <div class="footer-links my-3">
+        <a href="about.html"><i class="fa-solid fa-circle-info"></i> Biz haqimizda</a>
+        <a href="privacy.html"><i class="fa-solid fa-shield-halved"></i> Maxfiylik Siyosati (Privacy Policy)</a>
+        <a href="terms.html"><i class="fa-solid fa-file-contract"></i> Foydalanish Shartlari (Terms of Service)</a>
+        <a href="contact.html"><i class="fa-solid fa-envelope"></i> Aloqa (Contact Us)</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const PortalStorage = {
+      getCoins: () => parseInt(localStorage.getItem('cg_coins')) || 250,
+      setCoins: (n) => { localStorage.setItem('cg_coins', n); PortalStorage.updateUI(); },
+      addCoins: (n) => PortalStorage.setCoins(PortalStorage.getCoins() + n),
+      getGems: () => parseInt(localStorage.getItem('cg_gems')) || 15,
+      setGems: (n) => { localStorage.setItem('cg_gems', n); PortalStorage.updateUI(); },
+      addGems: (n) => PortalStorage.setGems(PortalStorage.getGems() + n),
+      getLastDaily: () => localStorage.getItem('cg_last_daily') || '',
+      setLastDaily: (d) => localStorage.setItem('cg_last_daily', d),
+      updateUI: () => {
+        document.getElementById('top-coins').textContent = PortalStorage.getCoins();
+        document.getElementById('top-gems').textContent = PortalStorage.getGems();
+      }
+    };
+
+    // UI yangilash
+    PortalStorage.updateUI();
+
+    // Daily Reward
+    const modal = document.getElementById('home-daily-modal');
+    const btnOpenDaily = document.getElementById('btn-open-daily');
+    const btnCloseDaily = document.getElementById('btn-close-daily');
+    const btnClaim = document.getElementById('btn-claim-today');
+
+    btnOpenDaily.addEventListener('click', () => {
+      const today = new Date().toDateString();
+      if (PortalStorage.getLastDaily() === today) {
+        btnClaim.disabled = true;
+        btnClaim.innerHTML = '<i class="fa-solid fa-check"></i> Bugungi mukofot olingan!';
+        btnClaim.className = 'btn btn-secondary fw-bold py-2';
+      } else {
+        btnClaim.disabled = false;
+        btnClaim.innerHTML = '<i class="fa-solid fa-gift"></i> Bonusni Qabul Qilish';
+        btnClaim.className = 'btn btn-warning fw-bold py-2';
+      }
+      modal.style.display = 'flex';
+    });
+
+    btnCloseDaily.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    btnClaim.addEventListener('click', () => {
+      const today = new Date().toDateString();
+      if (PortalStorage.getLastDaily() !== today) {
+        PortalStorage.addCoins(150);
+        PortalStorage.addGems(5);
+        PortalStorage.setLastDaily(today);
+        btnClaim.disabled = true;
+        btnClaim.innerHTML = '<i class="fa-solid fa-circle-check"></i> Muvaffaqiyatli qabul qilindi!';
+        btnClaim.className = 'btn btn-success fw-bold py-2';
+        setTimeout(() => { modal.style.display = 'none'; }, 1200);
+      }
+    });
+  </script>
+</body>
+</html>
